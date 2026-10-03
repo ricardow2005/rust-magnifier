@@ -24,6 +24,19 @@
     }
 
     #[repr(C)]
+    struct DrawItemStruct {
+        ctl_type: Uint,
+        ctl_id: Uint,
+        item_id: Uint,
+        item_action: Uint,
+        item_state: Uint,
+        hwnd_item: Hwnd,
+        hdc: Hdc,
+        rc_item: Rect,
+        item_data: usize,
+    }
+
+    #[repr(C)]
     struct WndClassW {
         style: Uint,
         wnd_proc: Option<unsafe extern "system" fn(Hwnd, Uint, Wparam, Lparam) -> Lresult>,
@@ -84,6 +97,9 @@
         fn SetTimer(hwnd: Hwnd, id: UintPtr, elapse: Uint, timer_proc: *const c_void) -> UintPtr;
         fn KillTimer(hwnd: Hwnd, id: UintPtr) -> Bool;
         fn SetWindowTextW(hwnd: Hwnd, text: *const u16) -> Bool;
+        fn GetWindowTextLengthW(hwnd: Hwnd) -> i32;
+        fn GetWindowTextW(hwnd: Hwnd, text: *mut u16, max_count: i32) -> i32;
+        fn DrawTextW(hdc: Hdc, text: *const u16, count: i32, rect: *mut Rect, format: Uint) -> i32;
         fn SetLayeredWindowAttributes(hwnd: Hwnd, color_key: Dword, alpha: u8, flags: Dword) -> Bool;
         fn SendMessageW(hwnd: Hwnd, msg: Uint, w_param: Wparam, l_param: Lparam) -> Lresult;
         fn RegisterHotKey(hwnd: Hwnd, id: i32, modifiers: Uint, vk: Uint) -> Bool;
@@ -121,6 +137,34 @@
         fn SetTextColor(hdc: Hdc, color: Dword) -> Dword;
         fn SetBkColor(hdc: Hdc, color: Dword) -> Dword;
         fn SetBkMode(hdc: Hdc, mode: i32) -> i32;
+        fn CreatePen(style: i32, width: i32, color: Dword) -> Hgdiobj;
+        fn SelectObject(hdc: Hdc, object: Hgdiobj) -> Hgdiobj;
+        fn DeleteObject(object: Hgdiobj) -> Bool;
+        fn RoundRect(
+            hdc: Hdc,
+            left: i32,
+            top: i32,
+            right: i32,
+            bottom: i32,
+            width: i32,
+            height: i32,
+        ) -> Bool;
+        fn CreateFontW(
+            height: i32,
+            width: i32,
+            escapement: i32,
+            orientation: i32,
+            weight: i32,
+            italic: Dword,
+            underline: Dword,
+            strikeout: Dword,
+            charset: Dword,
+            output_precision: Dword,
+            clip_precision: Dword,
+            quality: Dword,
+            pitch_and_family: Dword,
+            face_name: *const u16,
+        ) -> Hfont;
     }
 
     #[link(name = "Magnification")]
