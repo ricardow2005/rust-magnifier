@@ -1,0 +1,135 @@
+    struct Point {
+        x: i32,
+        y: i32,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy, Default)]
+    struct Rect {
+        left: i32,
+        top: i32,
+        right: i32,
+        bottom: i32,
+    }
+
+    #[repr(C)]
+    struct Msg {
+        hwnd: Hwnd,
+        message: Uint,
+        w_param: Wparam,
+        l_param: Lparam,
+        time: Dword,
+        pt: Point,
+        l_private: Dword,
+    }
+
+    #[repr(C)]
+    struct WndClassW {
+        style: Uint,
+        wnd_proc: Option<unsafe extern "system" fn(Hwnd, Uint, Wparam, Lparam) -> Lresult>,
+        cls_extra: i32,
+        wnd_extra: i32,
+        instance: Hinstance,
+        icon: isize,
+        cursor: Hcursor,
+        background: Hbrush,
+        menu_name: *const u16,
+        class_name: *const u16,
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct MagTransform {
+        matrix: [[f32; 3]; 3],
+    }
+
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn RegisterClassW(class: *const WndClassW) -> u16;
+        fn CreateWindowExW(
+            ex_style: Dword,
+            class_name: *const u16,
+            window_name: *const u16,
+            style: Dword,
+            x: i32,
+            y: i32,
+            width: i32,
+            height: i32,
+            parent: Hwnd,
+            menu: Hmenu,
+            instance: Hinstance,
+            param: *mut c_void,
+        ) -> Hwnd;
+        fn DefWindowProcW(hwnd: Hwnd, msg: Uint, w_param: Wparam, l_param: Lparam) -> Lresult;
+        fn ShowWindow(hwnd: Hwnd, cmd_show: i32) -> Bool;
+        fn UpdateWindow(hwnd: Hwnd) -> Bool;
+        fn GetMessageW(msg: *mut Msg, hwnd: Hwnd, min: Uint, max: Uint) -> Bool;
+        fn TranslateMessage(msg: *const Msg) -> Bool;
+        fn DispatchMessageW(msg: *const Msg) -> Lresult;
+        fn PostQuitMessage(exit_code: i32);
+        fn DestroyWindow(hwnd: Hwnd) -> Bool;
+        fn GetCursorPos(point: *mut Point) -> Bool;
+        fn GetSystemMetrics(index: i32) -> i32;
+        fn SetWindowPos(
+            hwnd: Hwnd,
+            insert_after: Hwnd,
+            x: i32,
+            y: i32,
+            cx: i32,
+            cy: i32,
+            flags: Uint,
+        ) -> Bool;
+        fn GetClientRect(hwnd: Hwnd, rect: *mut Rect) -> Bool;
+        fn MoveWindow(hwnd: Hwnd, x: i32, y: i32, width: i32, height: i32, repaint: Bool) -> Bool;
+        fn SetTimer(hwnd: Hwnd, id: UintPtr, elapse: Uint, timer_proc: *const c_void) -> UintPtr;
+        fn KillTimer(hwnd: Hwnd, id: UintPtr) -> Bool;
+        fn SetWindowTextW(hwnd: Hwnd, text: *const u16) -> Bool;
+        fn SetLayeredWindowAttributes(hwnd: Hwnd, color_key: Dword, alpha: u8, flags: Dword) -> Bool;
+        fn SendMessageW(hwnd: Hwnd, msg: Uint, w_param: Wparam, l_param: Lparam) -> Lresult;
+        fn RegisterHotKey(hwnd: Hwnd, id: i32, modifiers: Uint, vk: Uint) -> Bool;
+        fn UnregisterHotKey(hwnd: Hwnd, id: i32) -> Bool;
+        fn LoadCursorW(instance: Hinstance, cursor_name: *const u16) -> Hcursor;
+        fn SetWindowRgn(hwnd: Hwnd, region: Hrgn, redraw: Bool) -> i32;
+        fn InvalidateRect(hwnd: Hwnd, rect: *const Rect, erase: Bool) -> Bool;
+    }
+
+    #[link(name = "uxtheme")]
+    unsafe extern "system" {
+        fn SetWindowTheme(hwnd: Hwnd, sub_app_name: *const u16, sub_id_list: *const u16) -> i32;
+    }
+
+    #[link(name = "dwmapi")]
+    unsafe extern "system" {
+        fn DwmSetWindowAttribute(
+            hwnd: Hwnd,
+            attribute: Dword,
+            value: *const c_void,
+            value_size: Dword,
+        ) -> i32;
+    }
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn GetModuleHandleW(module_name: *const u16) -> Hinstance;
+    }
+
+    #[link(name = "gdi32")]
+    unsafe extern "system" {
+        fn CreateEllipticRgn(left: i32, top: i32, right: i32, bottom: i32) -> Hrgn;
+        fn CreateRectRgn(left: i32, top: i32, right: i32, bottom: i32) -> Hrgn;
+        fn CreateSolidBrush(color: Dword) -> Hbrush;
+        fn SetTextColor(hdc: Hdc, color: Dword) -> Dword;
+        fn SetBkColor(hdc: Hdc, color: Dword) -> Dword;
+        fn SetBkMode(hdc: Hdc, mode: i32) -> i32;
+    }
+
+    #[link(name = "Magnification")]
+    unsafe extern "system" {
+        fn MagInitialize() -> Bool;
+        fn MagUninitialize() -> Bool;
+        fn MagSetWindowSource(hwnd: Hwnd, rect: Rect) -> Bool;
+        fn MagSetWindowTransform(hwnd: Hwnd, transform: *const MagTransform) -> Bool;
+        fn MagSetWindowFilterList(hwnd: Hwnd, filter_mode: Dword, count: i32, hwnds: *const Hwnd) -> Bool;
+    }
+
+    #[derive(Clone, Copy, PartialEq, Eq)]

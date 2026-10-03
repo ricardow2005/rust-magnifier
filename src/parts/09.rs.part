@@ -1,0 +1,135 @@
+                        }
+                        unsafe {
+                            configure_host_for_mode();
+                            update_ui_labels();
+                            update_magnifier();
+                        }
+                    }
+                    ID_MODE_FIXED => {
+                        {
+                            let mut guard = state().lock().unwrap();
+                            guard.mode = Mode::Fixed;
+                            guard.has_last_source = false;
+                        }
+                        unsafe {
+                            configure_host_for_mode();
+                            update_ui_labels();
+                            update_magnifier();
+                        }
+                    }
+                    ID_SHAPE_CIRCLE => {
+                        {
+                            let mut guard = state().lock().unwrap();
+                            guard.circle = !guard.circle;
+                        }
+                        unsafe {
+                            apply_shape();
+                            update_ui_labels();
+                        }
+                    }
+                    ID_ALWAYS_ON_TOP => {
+                        let (host, topmost) = {
+                            let mut guard = state().lock().unwrap();
+                            guard.always_on_top = !guard.always_on_top;
+                            (guard.host_hwnd, guard.always_on_top)
+                        };
+                        let insert_after = if topmost { HWND_TOPMOST } else { HWND_NOTOPMOST };
+                        unsafe {
+                            SetWindowPos(
+                                host,
+                                insert_after,
+                                0,
+                                0,
+                                0,
+                                0,
+                                SWP_NOSIZE | SWP_NOACTIVATE,
+                            );
+                            update_ui_labels();
+                        }
+                    }
+                    ID_EXIT => unsafe {
+                        DestroyWindow(hwnd);
+                    },
+                    _ => {}
+                }
+                0
+            }
+            WM_HOTKEY => {
+                match w_param as i32 {
+                    HOTKEY_ZOOM_IN => unsafe { set_zoom(0.25) },
+                    HOTKEY_ZOOM_OUT => unsafe { set_zoom(-0.25) },
+                    HOTKEY_TOGGLE => unsafe { toggle_running() },
+                    _ => {}
+                }
+                0
+            }
+            WM_TIMER => {
+                if w_param == TIMER_ID {
+                    unsafe { update_magnifier() };
+                }
+                0
+            }
+            WM_CLOSE => {
+                unsafe { DestroyWindow(hwnd) };
+                0
+            }
+            WM_DESTROY => {
+                let host = state().lock().unwrap().host_hwnd;
+                unsafe {
+                    KillTimer(hwnd, TIMER_ID);
+                    UnregisterHotKey(hwnd, HOTKEY_ZOOM_IN);
+                    UnregisterHotKey(hwnd, HOTKEY_ZOOM_OUT);
+                    UnregisterHotKey(hwnd, HOTKEY_TOGGLE);
+                    if host != 0 {
+                        DestroyWindow(host);
+                    }
+                    MagUninitialize();
+                    PostQuitMessage(0);
+                }
+                0
+            }
+            _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
+        }
+    }
+
+    pub fn run() -> Result<(), String> {
+        unsafe {
+            if MagInitialize() == FALSE {
+                return Err("Não foi possível inicializar a API de Magnificação do Windows.".into());
+            }
+
+            let instance = GetModuleHandleW(null());
+            if instance == 0 {
+                MagUninitialize();
+                return Err("GetModuleHandleW falhou.".into());
+            }
+
+            let main_class = wide("RustMagnifierMainWindow");
+            let host_class = wide("RustMagnifierHostWindow");
+            let cursor = LoadCursorW(0, IDC_ARROW as *const u16);
+            let main_bg_brush = CreateSolidBrush(COLOR_BG);
+            let panel_brush = CreateSolidBrush(COLOR_PANEL);
+            {
+                let mut guard = state().lock().unwrap();
+                guard.bg_brush = main_bg_brush;
+                guard.panel_brush = panel_brush;
+            }
+
+            let main_wc = WndClassW {
+                style: CS_HREDRAW | CS_VREDRAW,
+                wnd_proc: Some(main_wnd_proc),
+                cls_extra: 0,
+                wnd_extra: 0,
+                instance,
+                icon: 0,
+                cursor,
+                background: main_bg_brush,
+                menu_name: null(),
+                class_name: main_class.as_ptr(),
+            };
+            if RegisterClassW(&main_wc) == 0 {
+                MagUninitialize();
+                return Err("Falha ao registrar a janela principal.".into());
+            }
+
+            let host_wc = WndClassW {

@@ -1,0 +1,135 @@
+        let virtual_y = unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) };
+        let virtual_w = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) }.max(1);
+        let virtual_h = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) }.max(1);
+
+        let mut new_lens_pos = None;
+        if mode == Mode::Lens {
+            let gap = 26;
+            let max_host_x = (virtual_x + virtual_w - width).max(virtual_x);
+            let max_host_y = (virtual_y + virtual_h - height).max(virtual_y);
+
+            let mut x = cursor.x + gap;
+            let mut y = cursor.y + gap;
+
+            if x + width > virtual_x + virtual_w {
+                x = cursor.x - width - gap;
+            }
+            if y + height > virtual_y + virtual_h {
+                y = cursor.y - height - gap;
+            }
+            x = x.clamp(virtual_x, max_host_x);
+            y = y.clamp(virtual_y, max_host_y);
+
+            // Evita SetWindowPos redundante quando o cursor não mudou de pixel.
+            if x != last_x || y != last_y {
+                unsafe {
+                    SetWindowPos(
+                        host_hwnd,
+                        HWND_TOPMOST,
+                        x,
+                        y,
+                        0,
+                        0,
+                        SWP_NOSIZE | SWP_NOACTIVATE,
+                    )
+                };
+                new_lens_pos = Some((x, y));
+            }
+        }
+
+        let src_width = ((width as f32) / zoom).round().max(1.0) as i32;
+        let src_height = ((height as f32) / zoom).round().max(1.0) as i32;
+
+        let max_left = (virtual_x + virtual_w - src_width).max(virtual_x);
+        let max_top = (virtual_y + virtual_h - src_height).max(virtual_y);
+        let left = (cursor.x - src_width / 2).clamp(virtual_x, max_left);
+        let top = (cursor.y - src_height / 2).clamp(virtual_y, max_top);
+
+        let source = Rect {
+            left,
+            top,
+            right: left + src_width,
+            bottom: top + src_height,
+        };
+
+        let source_changed = !has_last_source
+            || source.left != last_source.left
+            || source.top != last_source.top
+            || source.right != last_source.right
+            || source.bottom != last_source.bottom;
+
+        if source_changed {
+            unsafe { MagSetWindowSource(mag_hwnd, source) };
+        }
+
+        // Atualiza cache só depois das APIs do Windows terminarem.
+        if new_lens_pos.is_some() || source_changed {
+            let mut guard = state().lock().unwrap();
+            if let Some((x, y)) = new_lens_pos {
+                guard.last_lens_x = x;
+                guard.last_lens_y = y;
+            }
+            if source_changed {
+                guard.last_source = source;
+                guard.has_last_source = true;
+            }
+        }
+    }
+
+    unsafe fn set_zoom(delta: f32) {
+        {
+            let mut guard = state().lock().unwrap();
+            guard.zoom = (guard.zoom + delta).clamp(1.0, 8.0);
+            guard.has_last_source = false;
+        }
+        unsafe {
+            apply_zoom_transform();
+            update_ui_labels();
+            update_magnifier();
+        }
+    }
+
+    unsafe fn set_lens_size(delta_width: i32) {
+        {
+            let mut guard = state().lock().unwrap();
+            let new_width = (guard.lens_width + delta_width).clamp(320, 960);
+            // Mantém aproximadamente a proporção 14:9 da lente padrão.
+            let new_height = ((new_width as f32) * (9.0 / 14.0)).round() as i32;
+            guard.lens_width = new_width;
+            guard.lens_height = new_height.clamp(220, 620);
+            guard.last_lens_x = i32::MIN;
+            guard.last_lens_y = i32::MIN;
+            guard.has_last_source = false;
+        }
+
+        unsafe {
+            configure_host_for_mode();
+            update_ui_labels();
+            update_magnifier();
+        }
+    }
+
+    unsafe fn configure_host_for_mode() {
+        let (host, mode, lens_w, lens_h, topmost) = {
+            let guard = state().lock().unwrap();
+            (
+                guard.host_hwnd,
+                guard.mode,
+                guard.lens_width,
+                guard.lens_height,
+                guard.always_on_top,
+            )
+        };
+        if host == 0 {
+            return;
+        }
+
+        match mode {
+            Mode::Lens => unsafe {
+                SetWindowPos(host, HWND_TOPMOST, 0, 0, lens_w, lens_h, SWP_NOACTIVATE);
+            },
+            Mode::Fixed => unsafe {
+                SetWindowPos(
+                    host,
+                    if topmost { HWND_TOPMOST } else { HWND_NOTOPMOST },
+                    520,

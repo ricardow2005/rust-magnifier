@@ -1,0 +1,136 @@
+                style: CS_HREDRAW | CS_VREDRAW,
+                wnd_proc: Some(host_wnd_proc),
+                cls_extra: 0,
+                wnd_extra: 0,
+                instance,
+                icon: 0,
+                cursor,
+                background: 0,
+                menu_name: null(),
+                class_name: host_class.as_ptr(),
+            };
+            if RegisterClassW(&host_wc) == 0 {
+                MagUninitialize();
+                return Err("Falha ao registrar a janela da lupa.".into());
+            }
+
+            let main_title = wide("Rust Magnifier");
+            let main_hwnd = CreateWindowExW(
+                0,
+                main_class.as_ptr(),
+                main_title.as_ptr(),
+                WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                475,
+                455,
+                0,
+                0,
+                instance,
+                null_mut(),
+            );
+            if main_hwnd == 0 {
+                MagUninitialize();
+                return Err("Falha ao criar a janela principal.".into());
+            }
+
+            // Solicita barra de título escura no Windows 10/11. O atributo 19 é
+            // usado como fallback em builds mais antigas do Windows 10.
+            let dark_mode: Bool = TRUE;
+            let dark_ptr = &dark_mode as *const Bool as *const c_void;
+            let dark_size = std::mem::size_of::<Bool>() as Dword;
+            if DwmSetWindowAttribute(
+                main_hwnd,
+                DWMWA_USE_IMMERSIVE_DARK_MODE,
+                dark_ptr,
+                dark_size,
+            ) != 0
+            {
+                DwmSetWindowAttribute(
+                    main_hwnd,
+                    DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
+                    dark_ptr,
+                    dark_size,
+                );
+            }
+
+            let host_title = wide("Rust Magnifier Lens");
+            let host_hwnd = CreateWindowExW(
+                WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE,
+                host_class.as_ptr(),
+                host_title.as_ptr(),
+                WS_POPUP | WS_CLIPCHILDREN,
+                520,
+                160,
+                560,
+                360,
+                0,
+                0,
+                instance,
+                null_mut(),
+            );
+            if host_hwnd == 0 {
+                DestroyWindow(main_hwnd);
+                MagUninitialize();
+                return Err("Falha ao criar a janela de magnificação.".into());
+            }
+
+            // A API Magnification exige que a janela host seja layered.
+            SetLayeredWindowAttributes(host_hwnd, 0, 255, LWA_ALPHA);
+
+            let magnifier_class = wide("Magnifier");
+            let empty = wide("");
+            let mag_hwnd = CreateWindowExW(
+                0,
+                magnifier_class.as_ptr(),
+                empty.as_ptr(),
+                WS_CHILD | WS_VISIBLE | WS_DISABLED | MS_SHOWMAGNIFIEDCURSOR,
+                0,
+                0,
+                560,
+                360,
+                host_hwnd,
+                0,
+                instance,
+                null_mut(),
+            );
+            if mag_hwnd == 0 {
+                DestroyWindow(host_hwnd);
+                DestroyWindow(main_hwnd);
+                MagUninitialize();
+                return Err("Falha ao criar o controle Magnifier do Windows.".into());
+            }
+
+            {
+                let mut guard = state().lock().unwrap();
+                guard.main_hwnd = main_hwnd;
+                guard.host_hwnd = host_hwnd;
+                guard.mag_hwnd = mag_hwnd;
+            }
+
+            // Evita o efeito de espelho infinito: a própria janela da lente não entra na captura.
+            MagSetWindowFilterList(mag_hwnd, MW_FILTERMODE_EXCLUDE, 1, &host_hwnd);
+            apply_zoom_transform();
+            apply_shape();
+
+            ShowWindow(main_hwnd, SW_SHOW);
+            UpdateWindow(main_hwnd);
+
+            let mut msg: Msg = zeroed();
+            while GetMessageW(&mut msg, 0, 0, 0) > 0 {
+                TranslateMessage(&msg);
+                DispatchMessageW(&msg);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn main() {
+    if let Err(error) = app::run() {
+        #[cfg(debug_assertions)]
+        eprintln!("{error}");
+    }
+}

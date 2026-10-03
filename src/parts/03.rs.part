@@ -1,0 +1,135 @@
+    enum Mode {
+        Lens,
+        Fixed,
+    }
+
+    struct AppState {
+        main_hwnd: Hwnd,
+        host_hwnd: Hwnd,
+        mag_hwnd: Hwnd,
+        zoom_label: Hwnd,
+        area_label: Hwnd,
+        start_button: Hwnd,
+        lens_radio: Hwnd,
+        fixed_radio: Hwnd,
+        circle_checkbox: Hwnd,
+        topmost_checkbox: Hwnd,
+        zoom: f32,
+        running: bool,
+        mode: Mode,
+        circle: bool,
+        always_on_top: bool,
+        lens_width: i32,
+        lens_height: i32,
+        bg_brush: Hbrush,
+        panel_brush: Hbrush,
+        last_lens_x: i32,
+        last_lens_y: i32,
+        last_source: Rect,
+        has_last_source: bool,
+    }
+
+    impl Default for AppState {
+        fn default() -> Self {
+            Self {
+                main_hwnd: 0,
+                host_hwnd: 0,
+                mag_hwnd: 0,
+                zoom_label: 0,
+                area_label: 0,
+                start_button: 0,
+                lens_radio: 0,
+                fixed_radio: 0,
+                circle_checkbox: 0,
+                topmost_checkbox: 0,
+                zoom: 2.0,
+                running: false,
+                mode: Mode::Lens,
+                circle: false,
+                always_on_top: true,
+                lens_width: 560,
+                lens_height: 360,
+                bg_brush: 0,
+                panel_brush: 0,
+                last_lens_x: i32::MIN,
+                last_lens_y: i32::MIN,
+                last_source: Rect::default(),
+                has_last_source: false,
+            }
+        }
+    }
+
+    static STATE: OnceLock<Mutex<AppState>> = OnceLock::new();
+
+    fn state() -> &'static Mutex<AppState> {
+        STATE.get_or_init(|| Mutex::new(AppState::default()))
+    }
+
+    fn wide(value: &str) -> Vec<u16> {
+        value.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    fn loword(value: usize) -> usize {
+        value & 0xFFFF
+    }
+
+    unsafe fn create_control(
+        parent: Hwnd,
+        class_name: &str,
+        text: &str,
+        style: Dword,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        id: usize,
+        instance: Hinstance,
+    ) -> Hwnd {
+        let class = wide(class_name);
+        let label = wide(text);
+        let control = unsafe {
+            CreateWindowExW(
+                0,
+                class.as_ptr(),
+                label.as_ptr(),
+                WS_CHILD | WS_VISIBLE | style,
+                x,
+                y,
+                width,
+                height,
+                parent,
+                id as Hmenu,
+                instance,
+                null_mut(),
+            )
+        };
+
+        if control != 0 && class_name == "BUTTON" {
+            let dark_theme = wide("DarkMode_Explorer");
+            unsafe { SetWindowTheme(control, dark_theme.as_ptr(), null()) };
+        }
+
+        control
+    }
+
+    unsafe fn update_ui_labels() {
+        // Fazemos apenas um snapshot dos handles/valores. Nenhuma chamada Win32
+        // acontece enquanto o Mutex estiver bloqueado, evitando reentrada/deadlock.
+        let (
+            zoom_label,
+            area_label,
+            start_button,
+            lens_radio,
+            fixed_radio,
+            circle_checkbox,
+            topmost_checkbox,
+            main_hwnd,
+            zoom,
+            lens_width,
+            lens_height,
+            running,
+            mode,
+            circle,
+            always_on_top,
+        ) = {
+            let guard = state().lock().unwrap();

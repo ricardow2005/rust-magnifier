@@ -1,0 +1,135 @@
+                        210,
+                        24,
+                        ID_MODE_LENS,
+                        instance,
+                    )
+                };
+                let fixed_radio = unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Janela fixa",
+                        BS_AUTORADIOBUTTON,
+                        35,
+                        134,
+                        150,
+                        24,
+                        ID_MODE_FIXED,
+                        instance,
+                    )
+                };
+
+                unsafe {
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "Zoom",
+                        SS_LEFT,
+                        22,
+                        180,
+                        70,
+                        24,
+                        0,
+                        instance,
+                    );
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "−",
+                        BS_PUSHBUTTON,
+                        92,
+                        176,
+                        44,
+                        30,
+                        ID_ZOOM_MINUS,
+                        instance,
+                    );
+                }
+                let zoom_label = unsafe {
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "2.0x",
+                        SS_CENTER,
+                        143,
+                        181,
+                        60,
+                        22,
+                        0,
+                        instance,
+                    )
+                };
+                unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "+",
+                        BS_PUSHBUTTON,
+                        210,
+                        176,
+                        44,
+                        30,
+                        ID_ZOOM_PLUS,
+                        instance,
+                    );
+                }
+
+                let circle_checkbox = unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Lente circular",
+                        BS_AUTOCHECKBOX,
+                        280,
+                        178,
+                        145,
+                        26,
+                        ID_SHAPE_CIRCLE,
+                        instance,
+                    )
+                };
+
+                unsafe {
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "Área da lente",
+                        SS_LEFT,
+                        22,
+                        220,
+                        105,
+                        24,
+                        0,
+                        instance,
+                    );
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "−",
+                        BS_PUSHBUTTON,
+                        132,
+                        216,
+                        44,
+                        30,
+                        ID_AREA_MINUS,
+                        instance,
+                    );
+                }
+                let area_label = unsafe {
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "560 × 360",
+                        SS_CENTER,
+                        183,
+                        221,
+                        94,
+                        22,
+                        0,
+                        instance,
+                    )
+                };
+                unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",

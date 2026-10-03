@@ -1,0 +1,135 @@
+                        "+",
+                        BS_PUSHBUTTON,
+                        284,
+                        216,
+                        44,
+                        30,
+                        ID_AREA_PLUS,
+                        instance,
+                    );
+                }
+
+                let topmost_checkbox = unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Sempre no topo",
+                        BS_AUTOCHECKBOX,
+                        22,
+                        258,
+                        150,
+                        26,
+                        ID_ALWAYS_ON_TOP,
+                        instance,
+                    )
+                };
+
+                let start_button = unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Iniciar lupa",
+                        BS_PUSHBUTTON,
+                        22,
+                        302,
+                        180,
+                        38,
+                        ID_START_STOP,
+                        instance,
+                    )
+                };
+                unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Sair",
+                        BS_PUSHBUTTON,
+                        218,
+                        302,
+                        95,
+                        38,
+                        ID_EXIT,
+                        instance,
+                    );
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "Atalhos: Ctrl+Alt+M liga/desliga • Ctrl+Alt++ / Ctrl+Alt+- ajustam o zoom",
+                        SS_LEFT,
+                        22,
+                        360,
+                        420,
+                        42,
+                        0,
+                        instance,
+                    );
+                }
+
+                {
+                    let mut guard = state().lock().unwrap();
+                    guard.main_hwnd = hwnd;
+                    guard.zoom_label = zoom_label;
+                    guard.area_label = area_label;
+                    guard.start_button = start_button;
+                    guard.lens_radio = lens_radio;
+                    guard.fixed_radio = fixed_radio;
+                    guard.circle_checkbox = circle_checkbox;
+                    guard.topmost_checkbox = topmost_checkbox;
+                }
+
+                unsafe {
+                    update_ui_labels();
+                    RegisterHotKey(
+                        hwnd,
+                        HOTKEY_ZOOM_IN,
+                        MOD_CONTROL | MOD_ALT | MOD_NOREPEAT,
+                        VK_OEM_PLUS,
+                    );
+                    RegisterHotKey(
+                        hwnd,
+                        HOTKEY_ZOOM_OUT,
+                        MOD_CONTROL | MOD_ALT | MOD_NOREPEAT,
+                        VK_OEM_MINUS,
+                    );
+                    RegisterHotKey(
+                        hwnd,
+                        HOTKEY_TOGGLE,
+                        MOD_CONTROL | MOD_ALT | MOD_NOREPEAT,
+                        VK_M,
+                    );
+                    SetTimer(hwnd, TIMER_ID, TIMER_INTERVAL_MS, null());
+                }
+                0
+            }
+            WM_CTLCOLORSTATIC => {
+                let hdc = w_param as Hdc;
+                let bg_brush = state().lock().unwrap().bg_brush;
+                unsafe {
+                    SetTextColor(hdc, COLOR_TEXT);
+                    SetBkMode(hdc, TRANSPARENT);
+                }
+                bg_brush as Lresult
+            }
+            WM_CTLCOLORBTN => {
+                let hdc = w_param as Hdc;
+                let panel_brush = state().lock().unwrap().panel_brush;
+                unsafe {
+                    SetTextColor(hdc, COLOR_TEXT);
+                    SetBkColor(hdc, COLOR_PANEL);
+                }
+                panel_brush as Lresult
+            }
+            WM_COMMAND => {
+                match loword(w_param) {
+                    ID_START_STOP => unsafe { toggle_running() },
+                    ID_ZOOM_MINUS => unsafe { set_zoom(-0.25) },
+                    ID_ZOOM_PLUS => unsafe { set_zoom(0.25) },
+                    ID_AREA_MINUS => unsafe { set_lens_size(-80) },
+                    ID_AREA_PLUS => unsafe { set_lens_size(80) },
+                    ID_MODE_LENS => {
+                        {
+                            let mut guard = state().lock().unwrap();
+                            guard.mode = Mode::Lens;
+                            guard.last_lens_x = i32::MIN;
+                            guard.last_lens_y = i32::MIN;
+                            guard.has_last_source = false;

@@ -1,0 +1,135 @@
+            (
+                guard.zoom_label,
+                guard.area_label,
+                guard.start_button,
+                guard.lens_radio,
+                guard.fixed_radio,
+                guard.circle_checkbox,
+                guard.topmost_checkbox,
+                guard.main_hwnd,
+                guard.zoom,
+                guard.lens_width,
+                guard.lens_height,
+                guard.running,
+                guard.mode,
+                guard.circle,
+                guard.always_on_top,
+            )
+        };
+
+        let zoom_text = wide(&format!("{zoom:.1}x"));
+        unsafe { SetWindowTextW(zoom_label, zoom_text.as_ptr()) };
+
+        if area_label != 0 {
+            let area_text = wide(&format!("{lens_width} × {lens_height}"));
+            unsafe { SetWindowTextW(area_label, area_text.as_ptr()) };
+        }
+
+        let start_text = if running {
+            wide("Parar lupa")
+        } else {
+            wide("Iniciar lupa")
+        };
+        unsafe { SetWindowTextW(start_button, start_text.as_ptr()) };
+
+        unsafe {
+            SendMessageW(
+                lens_radio,
+                BM_SETCHECK,
+                if mode == Mode::Lens { BST_CHECKED } else { BST_UNCHECKED },
+                0,
+            );
+            SendMessageW(
+                fixed_radio,
+                BM_SETCHECK,
+                if mode == Mode::Fixed { BST_CHECKED } else { BST_UNCHECKED },
+                0,
+            );
+            SendMessageW(
+                circle_checkbox,
+                BM_SETCHECK,
+                if circle { BST_CHECKED } else { BST_UNCHECKED },
+                0,
+            );
+            SendMessageW(
+                topmost_checkbox,
+                BM_SETCHECK,
+                if always_on_top { BST_CHECKED } else { BST_UNCHECKED },
+                0,
+            );
+            if main_hwnd != 0 {
+                InvalidateRect(main_hwnd, null(), TRUE);
+            }
+        }
+    }
+
+    unsafe fn apply_zoom_transform() {
+        let (mag_hwnd, zoom) = {
+            let guard = state().lock().unwrap();
+            (guard.mag_hwnd, guard.zoom)
+        };
+        if mag_hwnd == 0 {
+            return;
+        }
+
+        let transform = MagTransform {
+            matrix: [[zoom, 0.0, 0.0], [0.0, zoom, 0.0], [0.0, 0.0, 1.0]],
+        };
+        unsafe { MagSetWindowTransform(mag_hwnd, &transform) };
+    }
+
+    unsafe fn apply_shape() {
+        let (host_hwnd, circle, mode) = {
+            let guard = state().lock().unwrap();
+            (guard.host_hwnd, guard.circle, guard.mode)
+        };
+        if host_hwnd == 0 {
+            return;
+        }
+
+        let mut rect = Rect::default();
+        unsafe { GetClientRect(host_hwnd, &mut rect) };
+        let width = (rect.right - rect.left).max(1);
+        let height = (rect.bottom - rect.top).max(1);
+        let region = if circle && mode == Mode::Lens {
+            unsafe { CreateEllipticRgn(0, 0, width, height) }
+        } else {
+            unsafe { CreateRectRgn(0, 0, width, height) }
+        };
+        unsafe { SetWindowRgn(host_hwnd, region, TRUE) };
+    }
+
+    unsafe fn update_magnifier() {
+        // Snapshot do estado antes de qualquer chamada Win32. A API de
+        // Magnification/SetWindowPos pode enviar mensagens sincronamente e não
+        // deve ser chamada com o Mutex do AppState adquirido.
+        let (running, host_hwnd, mag_hwnd, zoom, mode, last_x, last_y, last_source, has_last_source) = {
+            let guard = state().lock().unwrap();
+            (
+                guard.running,
+                guard.host_hwnd,
+                guard.mag_hwnd,
+                guard.zoom,
+                guard.mode,
+                guard.last_lens_x,
+                guard.last_lens_y,
+                guard.last_source,
+                guard.has_last_source,
+            )
+        };
+
+        if !running || host_hwnd == 0 || mag_hwnd == 0 {
+            return;
+        }
+
+        let mut cursor = Point::default();
+        if unsafe { GetCursorPos(&mut cursor) } == FALSE {
+            return;
+        }
+
+        let mut client = Rect::default();
+        unsafe { GetClientRect(host_hwnd, &mut client) };
+        let width = (client.right - client.left).max(1);
+        let height = (client.bottom - client.top).max(1);
+
+        let virtual_x = unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) };

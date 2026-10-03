@@ -1,0 +1,135 @@
+                    160,
+                    900,
+                    560,
+                    SWP_NOACTIVATE,
+                );
+            },
+        }
+        unsafe { apply_shape() };
+    }
+
+    unsafe fn toggle_running() {
+        let (host, running_now) = {
+            let mut guard = state().lock().unwrap();
+            guard.running = !guard.running;
+            guard.last_lens_x = i32::MIN;
+            guard.last_lens_y = i32::MIN;
+            guard.has_last_source = false;
+            (guard.host_hwnd, guard.running)
+        };
+
+        if running_now {
+            // Mostra primeiro e só então configura/atualiza a Magnification API.
+            // Isso evita inicializar a superfície DWM da lupa enquanto ela ainda
+            // está oculta, algo que pode causar travamentos em alguns drivers.
+            unsafe {
+                ShowWindow(host, SW_SHOWNOACTIVATE);
+                UpdateWindow(host);
+                configure_host_for_mode();
+                apply_zoom_transform();
+                update_magnifier();
+            }
+        } else {
+            unsafe { ShowWindow(host, SW_HIDE) };
+        }
+        unsafe { update_ui_labels() };
+    }
+
+    unsafe extern "system" fn host_wnd_proc(
+        hwnd: Hwnd,
+        msg: Uint,
+        w_param: Wparam,
+        l_param: Lparam,
+    ) -> Lresult {
+        match msg {
+            WM_NCHITTEST => HTTRANSPARENT,
+            WM_SIZE => {
+                let mag = state().lock().unwrap().mag_hwnd;
+                if mag != 0 {
+                    let mut rect = Rect::default();
+                    unsafe { GetClientRect(hwnd, &mut rect) };
+                    unsafe {
+                        MoveWindow(
+                            mag,
+                            0,
+                            0,
+                            (rect.right - rect.left).max(1),
+                            (rect.bottom - rect.top).max(1),
+                            TRUE,
+                        )
+                    };
+                    unsafe { apply_shape() };
+                }
+                0
+            }
+            _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
+        }
+    }
+
+    unsafe extern "system" fn main_wnd_proc(
+        hwnd: Hwnd,
+        msg: Uint,
+        w_param: Wparam,
+        l_param: Lparam,
+    ) -> Lresult {
+        match msg {
+            WM_CREATE => {
+                let instance = unsafe { GetModuleHandleW(null()) };
+
+                {
+                    let mut guard = state().lock().unwrap();
+                    if guard.bg_brush == 0 {
+                        guard.bg_brush = unsafe { CreateSolidBrush(COLOR_BG) };
+                    }
+                    if guard.panel_brush == 0 {
+                        guard.panel_brush = unsafe { CreateSolidBrush(COLOR_PANEL) };
+                    }
+                }
+
+                unsafe {
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "Rust Magnifier",
+                        SS_LEFT,
+                        22,
+                        18,
+                        300,
+                        28,
+                        0,
+                        instance,
+                    );
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "Lupa nativa para Windows • Rust 1.99.0",
+                        SS_LEFT,
+                        22,
+                        48,
+                        360,
+                        22,
+                        0,
+                        instance,
+                    );
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Modo",
+                        BS_GROUPBOX,
+                        18,
+                        82,
+                        420,
+                        82,
+                        0,
+                        instance,
+                    );
+                }
+
+                let lens_radio = unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Lente ao redor do mouse",
+                        BS_AUTORADIOBUTTON,
+                        35,
+                        106,
