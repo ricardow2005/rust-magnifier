@@ -88,6 +88,35 @@
         l_param: Lparam,
     ) -> Lresult {
         match msg {
+            WM_NCHITTEST => {
+                let mut cursor = Point::default();
+                let mut window = Rect::default();
+
+                unsafe {
+                    GetCursorPos(&mut cursor);
+                    GetWindowRect(hwnd, &mut window);
+                }
+
+                let local_x = cursor.x - window.left;
+                let local_y = cursor.y - window.top;
+
+                // A faixa superior funciona como barra de título própria.
+                // A área dos botões à direita continua clicável.
+                if local_y >= 0 && local_y < 62 && local_x >= 0 && local_x < 400 {
+                    HTCAPTION
+                } else {
+                    HTCLIENT
+                }
+            }
+            WM_SIZE => {
+                let mut rect = Rect::default();
+                unsafe { GetClientRect(hwnd, &mut rect) };
+                let width = (rect.right - rect.left).max(1);
+                let height = (rect.bottom - rect.top).max(1);
+                let region = unsafe { CreateRoundRectRgn(0, 0, width + 1, height + 1, 22, 22) };
+                unsafe { SetWindowRgn(hwnd, region, TRUE) };
+                0
+            }
             WM_CREATE => {
                 let instance = unsafe { GetModuleHandleW(null()) };
 
