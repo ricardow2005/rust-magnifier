@@ -231,8 +231,8 @@
                 }
             },
             ID_EXIT => (
-                if pressed { COLOR_DANGER_DOWN } else { COLOR_DANGER },
-                if focused { COLOR_BORDER_FOCUS } else { COLOR_DANGER },
+                if pressed { COLOR_DANGER_DOWN } else { COLOR_BG },
+                if focused { COLOR_BORDER_FOCUS } else { COLOR_BG },
             ),
             ID_MODE_LENS | ID_MODE_FIXED | ID_MODE_DOCKED
             | ID_SHAPE_CIRCLE | ID_ALWAYS_ON_TOP => (
