@@ -7,6 +7,7 @@
                 guard.docked_radio,
                 guard.circle_checkbox,
                 guard.topmost_checkbox,
+                guard.status_label,
                 guard.main_hwnd,
                 guard.zoom,
                 guard.lens_width,
@@ -32,43 +33,27 @@
         }
 
         let start_text = if running {
-            wide("Parar lupa")
+            wide("■  Parar lupa")
         } else {
-            wide("Iniciar lupa")
+            wide("▶  Iniciar lupa")
         };
         unsafe { SetWindowTextW(start_button, start_text.as_ptr()) };
 
+        if status_label != 0 {
+            let status_text = if running { wide("ATIVO") } else { wide("PARADO") };
+            unsafe {
+                SetWindowTextW(status_label, status_text.as_ptr());
+                InvalidateRect(status_label, null(), TRUE);
+            }
+        }
+
         unsafe {
-            SendMessageW(
-                lens_radio,
-                BM_SETCHECK,
-                if mode == Mode::Lens { BST_CHECKED } else { BST_UNCHECKED },
-                0,
-            );
-            SendMessageW(
-                fixed_radio,
-                BM_SETCHECK,
-                if mode == Mode::Fixed { BST_CHECKED } else { BST_UNCHECKED },
-                0,
-            );
-            SendMessageW(
-                docked_radio,
-                BM_SETCHECK,
-                if mode == Mode::Docked { BST_CHECKED } else { BST_UNCHECKED },
-                0,
-            );
-            SendMessageW(
-                circle_checkbox,
-                BM_SETCHECK,
-                if circle { BST_CHECKED } else { BST_UNCHECKED },
-                0,
-            );
-            SendMessageW(
-                topmost_checkbox,
-                BM_SETCHECK,
-                if always_on_top { BST_CHECKED } else { BST_UNCHECKED },
-                0,
-            );
+            InvalidateRect(lens_radio, null(), TRUE);
+            InvalidateRect(fixed_radio, null(), TRUE);
+            InvalidateRect(docked_radio, null(), TRUE);
+            InvalidateRect(circle_checkbox, null(), TRUE);
+            InvalidateRect(topmost_checkbox, null(), TRUE);
+            InvalidateRect(start_button, null(), TRUE);
             if main_hwnd != 0 {
                 InvalidateRect(main_hwnd, null(), TRUE);
             }
