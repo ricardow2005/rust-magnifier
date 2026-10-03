@@ -123,10 +123,62 @@
             let cursor = LoadCursorW(0, IDC_ARROW as *const u16);
             let main_bg_brush = CreateSolidBrush(COLOR_BG);
             let panel_brush = CreateSolidBrush(COLOR_PANEL);
+            let font_face = wide("Segoe UI");
+            let ui_font = CreateFontW(
+                -18,
+                0,
+                0,
+                0,
+                FW_NORMAL,
+                0,
+                0,
+                0,
+                DEFAULT_CHARSET,
+                OUT_DEFAULT_PRECIS,
+                CLIP_DEFAULT_PRECIS,
+                CLEARTYPE_QUALITY,
+                DEFAULT_PITCH,
+                font_face.as_ptr(),
+            );
+            let title_font = CreateFontW(
+                -25,
+                0,
+                0,
+                0,
+                FW_SEMIBOLD,
+                0,
+                0,
+                0,
+                DEFAULT_CHARSET,
+                OUT_DEFAULT_PRECIS,
+                CLIP_DEFAULT_PRECIS,
+                CLEARTYPE_QUALITY,
+                DEFAULT_PITCH,
+                font_face.as_ptr(),
+            );
+            let button_font = CreateFontW(
+                -18,
+                0,
+                0,
+                0,
+                FW_SEMIBOLD,
+                0,
+                0,
+                0,
+                DEFAULT_CHARSET,
+                OUT_DEFAULT_PRECIS,
+                CLIP_DEFAULT_PRECIS,
+                CLEARTYPE_QUALITY,
+                DEFAULT_PITCH,
+                font_face.as_ptr(),
+            );
             {
                 let mut guard = state().lock().unwrap();
                 guard.bg_brush = main_bg_brush;
                 guard.panel_brush = panel_brush;
+                guard.ui_font = ui_font;
+                guard.title_font = title_font;
+                guard.button_font = button_font;
             }
 
             let main_wc = WndClassW {
