@@ -4,12 +4,14 @@
                 guard.start_button,
                 guard.lens_radio,
                 guard.fixed_radio,
+                guard.docked_radio,
                 guard.circle_checkbox,
                 guard.topmost_checkbox,
                 guard.main_hwnd,
                 guard.zoom,
                 guard.lens_width,
                 guard.lens_height,
+                guard.dock_height,
                 guard.running,
                 guard.mode,
                 guard.circle,
@@ -21,7 +23,11 @@
         unsafe { SetWindowTextW(zoom_label, zoom_text.as_ptr()) };
 
         if area_label != 0 {
-            let area_text = wide(&format!("{lens_width} × {lens_height}"));
+            let area_text = match mode {
+                Mode::Lens => wide(&format!("{lens_width} × {lens_height}")),
+                Mode::Fixed => wide("900 × 560"),
+                Mode::Docked => wide(&format!("altura {dock_height}px")),
+            };
             unsafe { SetWindowTextW(area_label, area_text.as_ptr()) };
         }
 
@@ -43,6 +49,12 @@
                 fixed_radio,
                 BM_SETCHECK,
                 if mode == Mode::Fixed { BST_CHECKED } else { BST_UNCHECKED },
+                0,
+            );
+            SendMessageW(
+                docked_radio,
+                BM_SETCHECK,
+                if mode == Mode::Docked { BST_CHECKED } else { BST_UNCHECKED },
                 0,
             );
             SendMessageW(
