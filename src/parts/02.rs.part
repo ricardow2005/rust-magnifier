@@ -188,7 +188,6 @@
         fn MagSetWindowFilterList(hwnd: Hwnd, filter_mode: Dword, count: i32, hwnds: *const Hwnd) -> Bool;
     }
 
-    #[derive(Clone, Copy, PartialEq, Eq)]
 
 
     #[link(name = "shell32")]
@@ -259,3 +258,4 @@
         ) -> Bool;
         fn WinHttpCloseHandle(handle: Hinternet) -> Bool;
     }
+    #[derive(Clone, Copy, PartialEq, Eq)]
