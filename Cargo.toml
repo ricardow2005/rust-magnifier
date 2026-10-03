@@ -1,6 +1,6 @@
 [package]
 name = "rust-magnifier"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 rust-version = "1.99"
 description = "Lupa nativa para Windows com lente que acompanha o mouse"
