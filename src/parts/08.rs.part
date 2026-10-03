@@ -1,9 +1,9 @@
                         "+",
                         BS_OWNERDRAW,
-                        284,
-                        260,
-                        44,
-                        30,
+                        282,
+                        332,
+                        46,
+                        34,
                         ID_AREA_PLUS,
                         instance,
                     );
@@ -14,11 +14,11 @@
                         hwnd,
                         "BUTTON",
                         "Sempre no topo",
-                        BS_AUTOCHECKBOX,
-                        22,
-                        302,
-                        150,
-                        26,
+                        BS_OWNERDRAW,
+                        306,
+                        332,
+                        152,
+                        34,
                         ID_ALWAYS_ON_TOP,
                         instance,
                     )
@@ -28,12 +28,12 @@
                     create_control(
                         hwnd,
                         "BUTTON",
-                        "Iniciar lupa",
+                        "▶  Iniciar lupa",
                         BS_OWNERDRAW,
-                        22,
-                        348,
-                        210,
-                        44,
+                        20,
+                        434,
+                        462,
+                        48,
                         ID_START_STOP,
                         instance,
                     )
@@ -41,24 +41,12 @@
                 unsafe {
                     create_control(
                         hwnd,
-                        "BUTTON",
-                        "Sair",
-                        BS_OWNERDRAW,
-                        248,
-                        348,
-                        108,
-                        44,
-                        ID_EXIT,
-                        instance,
-                    );
-                    create_control(
-                        hwnd,
                         "STATIC",
-                        "Atalhos: Ctrl+Alt+M liga/desliga • Ctrl+Alt++ / Ctrl+Alt+- ajustam o zoom",
+                        "Atalhos: Ctrl+Alt+M liga/desliga  •  Ctrl+Alt++ / Ctrl+Alt+- ajustam o zoom",
                         SS_LEFT,
-                        22,
-                        410,
-                        420,
+                        24,
+                        498,
+                        452,
                         42,
                         ID_SHORTCUTS_LABEL,
                         instance,
@@ -76,6 +64,7 @@
                     guard.docked_radio = docked_radio;
                     guard.circle_checkbox = circle_checkbox;
                     guard.topmost_checkbox = topmost_checkbox;
+                    guard.status_label = status_label;
                 }
 
                 unsafe {
@@ -107,7 +96,13 @@
                 let hdc = w_param as Hdc;
                 let bg_brush = state().lock().unwrap().bg_brush;
                 let control_id = unsafe { GetDlgCtrlID(l_param as Hwnd) } as usize;
-                let text_color = if control_id == ID_SUBTITLE_LABEL
+                let text_color = if control_id == ID_STATUS_LABEL {
+                    if state().lock().unwrap().running {
+                        rgb(74, 222, 128)
+                    } else {
+                        COLOR_MUTED
+                    }
+                } else if control_id == ID_SUBTITLE_LABEL
                     || control_id == ID_SHORTCUTS_LABEL
                 {
                     COLOR_MUTED
@@ -133,6 +128,9 @@
             WM_COMMAND => {
                 match loword(w_param) {
                     ID_START_STOP => unsafe { toggle_running() },
+                    ID_MINIMIZE => unsafe {
+                        ShowWindow(hwnd, SW_MINIMIZE);
+                    },
                     ID_ZOOM_MINUS => unsafe { set_zoom(-0.25) },
                     ID_ZOOM_PLUS => unsafe { set_zoom(0.25) },
                     ID_AREA_MINUS => unsafe { set_lens_size(-80) },
