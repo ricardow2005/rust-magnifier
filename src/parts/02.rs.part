@@ -80,6 +80,8 @@
         fn TranslateMessage(msg: *const Msg) -> Bool;
         fn DispatchMessageW(msg: *const Msg) -> Lresult;
         fn PostQuitMessage(exit_code: i32);
+        fn PostMessageW(hwnd: Hwnd, msg: Uint, w_param: Wparam, l_param: Lparam) -> Bool;
+        fn MessageBoxW(hwnd: Hwnd, text: *const u16, caption: *const u16, kind: Uint) -> i32;
         fn DestroyWindow(hwnd: Hwnd) -> Bool;
         fn GetCursorPos(point: *mut Point) -> Bool;
         fn GetSystemMetrics(index: i32) -> i32;
@@ -187,3 +189,73 @@
     }
 
     #[derive(Clone, Copy, PartialEq, Eq)]
+
+
+    #[link(name = "shell32")]
+    unsafe extern "system" {
+        fn ShellExecuteW(
+            hwnd: Hwnd,
+            operation: *const u16,
+            file: *const u16,
+            parameters: *const u16,
+            directory: *const u16,
+            show_cmd: i32,
+        ) -> Hinstance;
+    }
+
+    #[link(name = "winhttp")]
+    unsafe extern "system" {
+        fn WinHttpOpen(
+            user_agent: *const u16,
+            access_type: Dword,
+            proxy_name: *const u16,
+            proxy_bypass: *const u16,
+            flags: Dword,
+        ) -> Hinternet;
+        fn WinHttpConnect(
+            session: Hinternet,
+            server_name: *const u16,
+            server_port: u16,
+            reserved: Dword,
+        ) -> Hinternet;
+        fn WinHttpOpenRequest(
+            connect: Hinternet,
+            verb: *const u16,
+            object_name: *const u16,
+            version: *const u16,
+            referrer: *const u16,
+            accept_types: *const *const u16,
+            flags: Dword,
+        ) -> Hinternet;
+        fn WinHttpSetTimeouts(
+            handle: Hinternet,
+            resolve_timeout: i32,
+            connect_timeout: i32,
+            send_timeout: i32,
+            receive_timeout: i32,
+        ) -> Bool;
+        fn WinHttpSendRequest(
+            request: Hinternet,
+            headers: *const u16,
+            headers_length: Dword,
+            optional: *mut c_void,
+            optional_length: Dword,
+            total_length: Dword,
+            context: usize,
+        ) -> Bool;
+        fn WinHttpReceiveResponse(
+            request: Hinternet,
+            reserved: *mut c_void,
+        ) -> Bool;
+        fn WinHttpQueryDataAvailable(
+            request: Hinternet,
+            available: *mut Dword,
+        ) -> Bool;
+        fn WinHttpReadData(
+            request: Hinternet,
+            buffer: *mut c_void,
+            bytes_to_read: Dword,
+            bytes_read: *mut Dword,
+        ) -> Bool;
+        fn WinHttpCloseHandle(handle: Hinternet) -> Bool;
+    }
