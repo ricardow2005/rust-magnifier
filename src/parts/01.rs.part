@@ -54,6 +54,7 @@ mod app {
     const SW_SHOW: i32 = 5;
     const SW_HIDE: i32 = 0;
     const SW_SHOWNOACTIVATE: i32 = 4;
+    const SW_MINIMIZE: i32 = 6;
 
     const WM_CREATE: Uint = 0x0001;
     const WM_DESTROY: Uint = 0x0002;
@@ -69,6 +70,8 @@ mod app {
     const WM_CTLCOLORSTATIC: Uint = 0x0138;
 
     const HTTRANSPARENT: Lresult = -1;
+    const HTCLIENT: Lresult = 1;
+    const HTCAPTION: Lresult = 2;
 
     const SWP_NOSIZE: Uint = 0x0001;
     const SWP_NOACTIVATE: Uint = 0x0010;
@@ -124,6 +127,9 @@ mod app {
     const ID_TITLE_LABEL: usize = 113;
     const ID_SUBTITLE_LABEL: usize = 114;
     const ID_SHORTCUTS_LABEL: usize = 115;
+    const ID_STATUS_LABEL: usize = 116;
+    const ID_MINIMIZE: usize = 117;
+    const ID_SETTINGS_PANEL: usize = 118;
 
     const TIMER_ID: UintPtr = 1;
     // ~60 FPS. O host da lente usa flags que evitam mensagens de reposicionamento
@@ -163,6 +169,7 @@ mod app {
     const COLOR_PANEL: Dword = rgb(17, 24, 39);         // #111827
     const COLOR_BUTTON: Dword = rgb(30, 41, 59);        // #1E293B
     const COLOR_BUTTON_PRESSED: Dword = rgb(51, 65, 85);// #334155
+    const COLOR_SELECTED: Dword = rgb(25, 48, 78);      // #19304E
     const COLOR_BORDER: Dword = rgb(71, 85, 105);       // #475569
     const COLOR_BORDER_FOCUS: Dword = rgb(96, 165, 250);// #60A5FA
     const COLOR_TEXT: Dword = rgb(226, 232, 240);       // #E2E8F0
