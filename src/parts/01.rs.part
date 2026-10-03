@@ -27,6 +27,7 @@ mod app {
     type Hdc = isize;
     type Hfont = isize;
     type Hgdiobj = isize;
+    type Hinternet = isize;
 
     const TRUE: Bool = 1;
     const FALSE: Bool = 0;
@@ -68,6 +69,7 @@ mod app {
     const WM_SETFONT: Uint = 0x0030;
     const WM_CTLCOLORBTN: Uint = 0x0135;
     const WM_CTLCOLORSTATIC: Uint = 0x0138;
+    const WM_UPDATE_CHECK_RESULT: Uint = 0x8001;
 
     const HTTRANSPARENT: Lresult = -1;
     const HTCLIENT: Lresult = 1;
@@ -130,6 +132,9 @@ mod app {
     const ID_STATUS_LABEL: usize = 116;
     const ID_MINIMIZE: usize = 117;
     const ID_SETTINGS_PANEL: usize = 118;
+    const ID_UPDATE_PANEL: usize = 119;
+    const ID_UPDATE_STATUS: usize = 120;
+    const ID_UPDATE_BUTTON: usize = 121;
 
     const TIMER_ID: UintPtr = 1;
     // ~60 FPS. O host da lente usa flags que evitam mensagens de reposicionamento
@@ -157,6 +162,17 @@ mod app {
     const CLIP_DEFAULT_PRECIS: Dword = 0;
     const CLEARTYPE_QUALITY: Dword = 5;
     const DEFAULT_PITCH: Dword = 0;
+
+    const WINHTTP_ACCESS_TYPE_DEFAULT_PROXY: Dword = 0;
+    const WINHTTP_FLAG_SECURE: Dword = 0x0080_0000;
+    const INTERNET_DEFAULT_HTTPS_PORT: u16 = 443;
+
+    const MB_OK: Uint = 0x0000_0000;
+    const MB_YESNO: Uint = 0x0000_0004;
+    const MB_ICONINFORMATION: Uint = 0x0000_0040;
+    const MB_ICONWARNING: Uint = 0x0000_0030;
+    const IDYES: i32 = 6;
+    const SW_SHOWNORMAL: i32 = 1;
     const DWMWA_USE_IMMERSIVE_DARK_MODE: Dword = 20;
     const DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1: Dword = 19;
 
