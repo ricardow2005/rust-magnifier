@@ -25,6 +25,8 @@ mod app {
     type Hcursor = isize;
     type Hrgn = isize;
     type Hdc = isize;
+    type Hfont = isize;
+    type Hgdiobj = isize;
 
     const TRUE: Bool = 1;
     const FALSE: Bool = 0;
@@ -61,6 +63,8 @@ mod app {
     const WM_HOTKEY: Uint = 0x0312;
     const WM_NCHITTEST: Uint = 0x0084;
     const WM_CLOSE: Uint = 0x0010;
+    const WM_DRAWITEM: Uint = 0x002B;
+    const WM_SETFONT: Uint = 0x0030;
     const WM_CTLCOLORBTN: Uint = 0x0135;
     const WM_CTLCOLORSTATIC: Uint = 0x0138;
 
@@ -86,6 +90,7 @@ mod app {
     const BS_AUTORADIOBUTTON: Dword = 0x0000_0009;
     const BS_GROUPBOX: Dword = 0x0000_0007;
     const BS_AUTOCHECKBOX: Dword = 0x0000_0003;
+    const BS_OWNERDRAW: Dword = 0x0000_000B;
     const BST_CHECKED: Wparam = 1;
     const BST_UNCHECKED: Wparam = 0;
     const BM_SETCHECK: Uint = 0x00F1;
@@ -115,6 +120,7 @@ mod app {
     const ID_AREA_MINUS: usize = 109;
     const ID_AREA_PLUS: usize = 110;
     const ID_MODE_DOCKED: usize = 111;
+    const ID_MODE_PANEL: usize = 112;
 
     const TIMER_ID: UintPtr = 1;
     // ~60 FPS. O host da lente usa flags que evitam mensagens de reposicionamento
@@ -125,14 +131,43 @@ mod app {
     const MS_SHOWMAGNIFIEDCURSOR: Dword = 0x0001;
 
     const TRANSPARENT: i32 = 1;
+    const ODS_SELECTED: Uint = 0x0001;
+    const ODS_DISABLED: Uint = 0x0004;
+    const ODS_FOCUS: Uint = 0x0010;
+
+    const DT_CENTER: Uint = 0x0001;
+    const DT_VCENTER: Uint = 0x0004;
+    const DT_SINGLELINE: Uint = 0x0020;
+    const DT_END_ELLIPSIS: Uint = 0x8000;
+
+    const PS_SOLID: i32 = 0;
+    const FW_NORMAL: i32 = 400;
+    const FW_SEMIBOLD: i32 = 600;
+    const DEFAULT_CHARSET: Dword = 1;
+    const OUT_DEFAULT_PRECIS: Dword = 0;
+    const CLIP_DEFAULT_PRECIS: Dword = 0;
+    const CLEARTYPE_QUALITY: Dword = 5;
+    const DEFAULT_PITCH: Dword = 0;
     const DWMWA_USE_IMMERSIVE_DARK_MODE: Dword = 20;
     const DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1: Dword = 19;
 
-    // Paleta dark inspirada no visual mostrado: fundo bem escuro, painéis azulados
-    // e texto claro. COLORREF no Win32 usa a ordem 0x00BBGGRR.
-    const COLOR_BG: Dword = 0x0020_100B;       // #0B1020
-    const COLOR_PANEL: Dword = 0x0036_231A;    // #1A2336
-    const COLOR_TEXT: Dword = 0x00EB_E7E5;     // #E5E7EB
+    const fn rgb(r: u8, g: u8, b: u8) -> Dword {
+        (r as Dword) | ((g as Dword) << 8) | ((b as Dword) << 16)
+    }
+
+    // Paleta dark moderna.
+    const COLOR_BG: Dword = rgb(9, 14, 26);             // #090E1A
+    const COLOR_PANEL: Dword = rgb(17, 24, 39);         // #111827
+    const COLOR_BUTTON: Dword = rgb(30, 41, 59);        // #1E293B
+    const COLOR_BUTTON_PRESSED: Dword = rgb(51, 65, 85);// #334155
+    const COLOR_BORDER: Dword = rgb(71, 85, 105);       // #475569
+    const COLOR_BORDER_FOCUS: Dword = rgb(96, 165, 250);// #60A5FA
+    const COLOR_TEXT: Dword = rgb(226, 232, 240);       // #E2E8F0
+    const COLOR_MUTED: Dword = rgb(148, 163, 184);      // #94A3B8
+    const COLOR_PRIMARY: Dword = rgb(37, 99, 235);      // #2563EB
+    const COLOR_PRIMARY_DOWN: Dword = rgb(29, 78, 216); // #1D4ED8
+    const COLOR_DANGER: Dword = rgb(153, 27, 27);       // #991B1B
+    const COLOR_DANGER_DOWN: Dword = rgb(127, 29, 29);  // #7F1D1D
 
     #[repr(C)]
     #[derive(Clone, Copy, Default, PartialEq, Eq)]
