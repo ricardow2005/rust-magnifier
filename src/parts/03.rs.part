@@ -16,6 +16,7 @@
         docked_radio: Hwnd,
         circle_checkbox: Hwnd,
         topmost_checkbox: Hwnd,
+        status_label: Hwnd,
         zoom: f32,
         running: bool,
         mode: Mode,
@@ -49,6 +50,7 @@
                 docked_radio: 0,
                 circle_checkbox: 0,
                 topmost_checkbox: 0,
+                status_label: 0,
                 zoom: 2.0,
                 running: false,
                 mode: Mode::Lens,
@@ -141,12 +143,19 @@
         let pressed = (draw.item_state & ODS_SELECTED) != 0;
         let focused = (draw.item_state & ODS_FOCUS) != 0;
         let disabled = (draw.item_state & ODS_DISABLED) != 0;
-        let (ui_font, button_font) = {
+        let (ui_font, button_font, mode, circle, always_on_top, running) = {
             let guard = state().lock().unwrap();
-            (guard.ui_font, guard.button_font)
+            (
+                guard.ui_font,
+                guard.button_font,
+                guard.mode,
+                guard.circle,
+                guard.always_on_top,
+                guard.running,
+            )
         };
 
-        if id == ID_MODE_PANEL {
+        if id == ID_MODE_PANEL || id == ID_SETTINGS_PANEL {
             let brush = unsafe { CreateSolidBrush(COLOR_PANEL) };
             let pen = unsafe { CreatePen(PS_SOLID, 1, COLOR_BORDER) };
             let old_brush = unsafe { SelectObject(draw.hdc, brush as Hgdiobj) };
@@ -168,7 +177,11 @@
                 DeleteObject(pen);
             }
 
-            let label = wide("Modo de exibição");
+            let label = wide(if id == ID_MODE_PANEL {
+                "Modo de exibição"
+            } else {
+                "Ampliação"
+            });
             let mut label_rect = Rect {
                 left: rect.left + 16,
                 top: rect.top + 10,
@@ -194,14 +207,47 @@
             return TRUE as Lresult;
         }
 
+        let selected = match id {
+            ID_MODE_LENS => mode == Mode::Lens,
+            ID_MODE_FIXED => mode == Mode::Fixed,
+            ID_MODE_DOCKED => mode == Mode::Docked,
+            ID_SHAPE_CIRCLE => circle,
+            ID_ALWAYS_ON_TOP => always_on_top,
+            _ => false,
+        };
+
         let (fill, border) = match id {
-            ID_START_STOP => (
-                if pressed { COLOR_PRIMARY_DOWN } else { COLOR_PRIMARY },
-                if focused { COLOR_BORDER_FOCUS } else { COLOR_PRIMARY },
-            ),
+            ID_START_STOP => {
+                if running {
+                    (
+                        if pressed { COLOR_DANGER_DOWN } else { COLOR_DANGER },
+                        if focused { COLOR_BORDER_FOCUS } else { COLOR_DANGER },
+                    )
+                } else {
+                    (
+                        if pressed { COLOR_PRIMARY_DOWN } else { COLOR_PRIMARY },
+                        if focused { COLOR_BORDER_FOCUS } else { COLOR_PRIMARY },
+                    )
+                }
+            },
             ID_EXIT => (
                 if pressed { COLOR_DANGER_DOWN } else { COLOR_DANGER },
                 if focused { COLOR_BORDER_FOCUS } else { COLOR_DANGER },
+            ),
+            ID_MODE_LENS | ID_MODE_FIXED | ID_MODE_DOCKED
+            | ID_SHAPE_CIRCLE | ID_ALWAYS_ON_TOP => (
+                if selected {
+                    if pressed { COLOR_BUTTON_PRESSED } else { COLOR_SELECTED }
+                } else if pressed {
+                    COLOR_BUTTON_PRESSED
+                } else {
+                    COLOR_BUTTON
+                },
+                if selected || focused { COLOR_BORDER_FOCUS } else { COLOR_BORDER },
+            ),
+            ID_MINIMIZE => (
+                if pressed { COLOR_BUTTON_PRESSED } else { COLOR_BG },
+                if focused { COLOR_BORDER_FOCUS } else { COLOR_BG },
             ),
             _ => (
                 if pressed { COLOR_BUTTON_PRESSED } else { COLOR_BUTTON },
@@ -273,6 +319,7 @@
             docked_radio,
             circle_checkbox,
             topmost_checkbox,
+            status_label,
             main_hwnd,
             zoom,
             lens_width,
