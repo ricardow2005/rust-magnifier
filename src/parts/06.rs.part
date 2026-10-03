@@ -109,9 +109,24 @@
                         SS_LEFT,
                         24,
                         18,
-                        320,
-                        32,
+                        260,
+                        30,
                         ID_TITLE_LABEL,
+                        instance,
+                    )
+                };
+
+                let status_label = unsafe {
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        "PARADO",
+                        SS_CENTER,
+                        326,
+                        22,
+                        72,
+                        24,
+                        ID_STATUS_LABEL,
                         instance,
                     )
                 };
@@ -119,12 +134,36 @@
                 unsafe {
                     create_control(
                         hwnd,
+                        "BUTTON",
+                        "−",
+                        BS_OWNERDRAW,
+                        408,
+                        14,
+                        34,
+                        32,
+                        ID_MINIMIZE,
+                        instance,
+                    );
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "×",
+                        BS_OWNERDRAW,
+                        448,
+                        14,
+                        34,
+                        32,
+                        ID_EXIT,
+                        instance,
+                    );
+                    create_control(
+                        hwnd,
                         "STATIC",
                         "Lupa nativa para Windows • Rust 1.99.0",
                         SS_LEFT,
                         24,
-                        52,
-                        390,
+                        50,
+                        360,
                         22,
                         ID_SUBTITLE_LABEL,
                         instance,
@@ -134,10 +173,10 @@
                         "BUTTON",
                         "",
                         BS_OWNERDRAW | WS_DISABLED,
-                        18,
-                        88,
-                        420,
-                        118,
+                        20,
+                        82,
+                        462,
+                        150,
                         ID_MODE_PANEL,
                         instance,
                     );
@@ -159,7 +198,7 @@
                     create_control(
                         hwnd,
                         "BUTTON",
-                        "Lente ao redor do mouse",
-                        BS_AUTORADIOBUTTON,
-                        38,
-                        120,
+                        "●  Lente ao redor do mouse",
+                        BS_OWNERDRAW,
+                        36,
+                        118,
