@@ -1,0 +1,14 @@
+[package]
+name = "rust-magnifier"
+version = "0.1.3"
+edition = "2024"
+rust-version = "1.99"
+description = "Lupa nativa para Windows com lente que acompanha o mouse"
+license = "MIT"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+panic = "abort"
