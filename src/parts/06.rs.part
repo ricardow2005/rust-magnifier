@@ -227,7 +227,7 @@
                     create_control(
                         hwnd,
                         "BUTTON",
-                        "●  Lente ao redor do mouse",
+                        "Lente ao redor do mouse",
                         BS_OWNERDRAW,
                         36,
                         118,
