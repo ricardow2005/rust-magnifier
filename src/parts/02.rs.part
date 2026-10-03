@@ -97,6 +97,7 @@
         fn SetTimer(hwnd: Hwnd, id: UintPtr, elapse: Uint, timer_proc: *const c_void) -> UintPtr;
         fn KillTimer(hwnd: Hwnd, id: UintPtr) -> Bool;
         fn SetWindowTextW(hwnd: Hwnd, text: *const u16) -> Bool;
+        fn GetDlgCtrlID(hwnd: Hwnd) -> i32;
         fn GetWindowTextLengthW(hwnd: Hwnd) -> i32;
         fn GetWindowTextW(hwnd: Hwnd, text: *mut u16, max_count: i32) -> i32;
         fn DrawTextW(hdc: Hdc, text: *const u16, count: i32, rect: *mut Rect, format: Uint) -> i32;
