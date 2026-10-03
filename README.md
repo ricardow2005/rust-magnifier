@@ -87,6 +87,17 @@ O workflow `.github/workflows/release.yml`:
 
 Para publicar uma nova versão, altere o campo `version` em `Cargo.toml` e envie a alteração para `main`. O Actions cria a tag/release correspondente automaticamente.
 
+## Notas da v0.1.7
+
+- Layout reorganizado em uma grade mais larga e consistente.
+- Cards **Modo de exibição** e **Ampliação** agora têm a mesma largura.
+- Corrigida a sobreposição entre o botão de área e **Sempre no topo**.
+- Linhas de **Zoom** e **Área da lente** alinhadas com espaçamentos fixos.
+- Corrigido o fundo dos textos dentro do card de ampliação para combinar com o painel.
+- Cabeçalho redistribuído para dar espaço correto ao status, minimizar e fechar.
+- Botão principal e rodapé ampliados; atalhos não ficam mais cortados.
+- Janela principal ajustada para 590 × 590 para acomodar a interface sem compressão.
+
 ## Notas da v0.1.6
 
 - Interface refeita para seguir a mesma linguagem visual do Move Mouse RS.
