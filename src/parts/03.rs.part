@@ -26,6 +26,9 @@
         dock_height: i32,
         bg_brush: Hbrush,
         panel_brush: Hbrush,
+        ui_font: Hfont,
+        title_font: Hfont,
+        button_font: Hfont,
         last_lens_x: i32,
         last_lens_y: i32,
         last_source: Rect,
@@ -56,6 +59,9 @@
                 dock_height: 240,
                 bg_brush: 0,
                 panel_brush: 0,
+                ui_font: 0,
+                title_font: 0,
+                button_font: 0,
                 last_lens_x: i32::MIN,
                 last_lens_y: i32::MIN,
                 last_source: Rect::default(),
@@ -109,12 +115,150 @@
             )
         };
 
-        if control != 0 && class_name == "BUTTON" {
-            let dark_theme = wide("DarkMode_Explorer");
-            unsafe { SetWindowTheme(control, dark_theme.as_ptr(), null()) };
+        if control != 0 {
+            let ui_font = state().lock().unwrap().ui_font;
+            if ui_font != 0 {
+                unsafe { SendMessageW(control, WM_SETFONT, ui_font as Wparam, TRUE as Lparam) };
+            }
+
+            if class_name == "BUTTON" && (style & BS_OWNERDRAW) == 0 {
+                let dark_theme = wide("DarkMode_Explorer");
+                unsafe { SetWindowTheme(control, dark_theme.as_ptr(), null()) };
+            }
         }
 
         control
+    }
+
+    unsafe fn draw_owner_control(draw: *const DrawItemStruct) -> Lresult {
+        if draw.is_null() {
+            return 0;
+        }
+
+        let draw = unsafe { &*draw };
+        let id = draw.ctl_id as usize;
+        let mut rect = draw.rc_item;
+        let pressed = (draw.item_state & ODS_SELECTED) != 0;
+        let focused = (draw.item_state & ODS_FOCUS) != 0;
+        let disabled = (draw.item_state & ODS_DISABLED) != 0;
+        let (ui_font, button_font) = {
+            let guard = state().lock().unwrap();
+            (guard.ui_font, guard.button_font)
+        };
+
+        if id == ID_MODE_PANEL {
+            let brush = unsafe { CreateSolidBrush(COLOR_PANEL) };
+            let pen = unsafe { CreatePen(PS_SOLID, 1, COLOR_BORDER) };
+            let old_brush = unsafe { SelectObject(draw.hdc, brush as Hgdiobj) };
+            let old_pen = unsafe { SelectObject(draw.hdc, pen) };
+
+            unsafe {
+                RoundRect(
+                    draw.hdc,
+                    rect.left,
+                    rect.top,
+                    rect.right - 1,
+                    rect.bottom - 1,
+                    16,
+                    16,
+                );
+                SelectObject(draw.hdc, old_brush);
+                SelectObject(draw.hdc, old_pen);
+                DeleteObject(brush as Hgdiobj);
+                DeleteObject(pen);
+            }
+
+            let label = wide("Modo de exibição");
+            let mut label_rect = Rect {
+                left: rect.left + 16,
+                top: rect.top + 10,
+                right: rect.right - 16,
+                bottom: rect.top + 34,
+            };
+
+            unsafe {
+                SetBkMode(draw.hdc, TRANSPARENT);
+                SetTextColor(draw.hdc, COLOR_MUTED);
+                if ui_font != 0 {
+                    SelectObject(draw.hdc, ui_font as Hgdiobj);
+                }
+                DrawTextW(
+                    draw.hdc,
+                    label.as_ptr(),
+                    -1,
+                    &mut label_rect,
+                    DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS,
+                );
+            }
+
+            return TRUE as Lresult;
+        }
+
+        let (fill, border) = match id {
+            ID_START_STOP => (
+                if pressed { COLOR_PRIMARY_DOWN } else { COLOR_PRIMARY },
+                if focused { COLOR_BORDER_FOCUS } else { COLOR_PRIMARY },
+            ),
+            ID_EXIT => (
+                if pressed { COLOR_DANGER_DOWN } else { COLOR_DANGER },
+                if focused { COLOR_BORDER_FOCUS } else { COLOR_DANGER },
+            ),
+            _ => (
+                if pressed { COLOR_BUTTON_PRESSED } else { COLOR_BUTTON },
+                if focused { COLOR_BORDER_FOCUS } else { COLOR_BORDER },
+            ),
+        };
+
+        let fill = if disabled { COLOR_PANEL } else { fill };
+        let brush = unsafe { CreateSolidBrush(fill) };
+        let pen = unsafe { CreatePen(PS_SOLID, if focused { 2 } else { 1 }, border) };
+        let old_brush = unsafe { SelectObject(draw.hdc, brush as Hgdiobj) };
+        let old_pen = unsafe { SelectObject(draw.hdc, pen) };
+
+        unsafe {
+            RoundRect(
+                draw.hdc,
+                rect.left + 1,
+                rect.top + 1,
+                rect.right - 1,
+                rect.bottom - 1,
+                14,
+                14,
+            );
+            SelectObject(draw.hdc, old_brush);
+            SelectObject(draw.hdc, old_pen);
+            DeleteObject(brush as Hgdiobj);
+            DeleteObject(pen);
+        }
+
+        let text_len = unsafe { GetWindowTextLengthW(draw.hwnd_item) };
+        let mut text = vec![0u16; (text_len.max(0) + 1) as usize];
+        unsafe { GetWindowTextW(draw.hwnd_item, text.as_mut_ptr(), text.len() as i32) };
+
+        if pressed {
+            rect.top += 1;
+            rect.bottom += 1;
+        }
+
+        unsafe {
+            SetBkMode(draw.hdc, TRANSPARENT);
+            SetTextColor(
+                draw.hdc,
+                if disabled { COLOR_MUTED } else { COLOR_TEXT },
+            );
+            if button_font != 0 {
+                SelectObject(draw.hdc, button_font as Hgdiobj);
+            }
+            DrawTextW(
+                draw.hdc,
+                text.as_ptr(),
+                -1,
+                &mut rect,
+                DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS,
+            );
+        }
+
+        TRUE as Lresult
     }
 
     unsafe fn update_ui_labels() {
