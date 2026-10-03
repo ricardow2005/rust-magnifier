@@ -87,6 +87,18 @@ O workflow `.github/workflows/release.yml`:
 
 Para publicar uma nova versão, altere o campo `version` em `Cargo.toml` e envie a alteração para `main`. O Actions cria a tag/release correspondente automaticamente.
 
+## Notas da v0.1.6
+
+- Interface refeita para seguir a mesma linguagem visual do Move Mouse RS.
+- Janela principal sem a barra padrão do Windows, com cantos arredondados e área superior arrastável.
+- Cabeçalho próprio com status **PARADO / ATIVO**, botão minimizar e botão fechar.
+- Modos de exibição transformados em botões/pills customizados, sem radio buttons nativos.
+- Opções **Circular** e **Sempre no topo** transformadas em toggles customizados.
+- Novo card **Ampliação** agrupando zoom e área da lente.
+- Botão principal ocupa toda a largura e muda de azul para vermelho quando a lupa está ativa.
+- Removidos os controles brancos/clássicos do Win32 que destoavam do tema dark.
+- Espaçamento, tipografia, cores e bordas alinhados ao estilo do outro aplicativo.
+
 ## Notas da v0.1.5
 
 - Interface redesenhada mantendo Win32 nativo e sem frameworks externos.
