@@ -87,6 +87,18 @@ O workflow `.github/workflows/release.yml`:
 
 Para publicar uma nova versão, altere o campo `version` em `Cargo.toml` e envie a alteração para `main`. O Actions cria a tag/release correspondente automaticamente.
 
+## Notas da v0.1.5
+
+- Interface redesenhada mantendo Win32 nativo e sem frameworks externos.
+- Tipografia **Segoe UI** com ClearType.
+- Botões de ação personalizados, arredondados e em tema dark.
+- Botão **Iniciar/Parar lupa** com destaque azul.
+- Botão **Sair** com destaque vermelho discreto.
+- Controles de zoom e área com visual de botões compactos modernos.
+- Bloco de modos transformado em um card escuro com borda suave.
+- Textos secundários e atalhos com contraste reduzido para melhorar a hierarquia visual.
+- Espaçamentos revistos para deixar a tela menos apertada.
+
 ## Notas da v0.1.4
 
 - Adicionado o modo **Janela superior**, fixado no topo do desktop.
