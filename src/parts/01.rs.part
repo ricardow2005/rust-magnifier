@@ -68,6 +68,8 @@ mod app {
 
     const SWP_NOSIZE: Uint = 0x0001;
     const SWP_NOACTIVATE: Uint = 0x0010;
+    const SWP_NOOWNERZORDER: Uint = 0x0200;
+    const SWP_NOSENDCHANGING: Uint = 0x0400;
 
     const HWND_TOPMOST: Hwnd = -1isize;
     const HWND_NOTOPMOST: Hwnd = -2isize;
@@ -112,10 +114,12 @@ mod app {
     const ID_EXIT: usize = 108;
     const ID_AREA_MINUS: usize = 109;
     const ID_AREA_PLUS: usize = 110;
+    const ID_MODE_DOCKED: usize = 111;
 
     const TIMER_ID: UintPtr = 1;
-    // ~30 FPS: suficiente para a lente e bem mais leve ao mover uma janela grande.
-    const TIMER_INTERVAL_MS: Uint = 33;
+    // ~60 FPS. O host da lente usa flags que evitam mensagens de reposicionamento
+    // desnecessárias, deixando o acompanhamento do mouse mais fluido.
+    const TIMER_INTERVAL_MS: Uint = 16;
 
     const MW_FILTERMODE_EXCLUDE: Dword = 0;
     const MS_SHOWMAGNIFIEDCURSOR: Dword = 0x0001;
