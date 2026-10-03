@@ -11,6 +11,7 @@ fn main() {
         "src/parts/07.rs.part",
         "src/parts/08.rs.part",
         "src/parts/09.rs.part",
+        "src/parts/10.rs.part",
     ];
 
     let mut source = String::new();
