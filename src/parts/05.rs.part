@@ -20,19 +20,10 @@
             x = x.clamp(virtual_x, max_host_x);
             y = y.clamp(virtual_y, max_host_y);
 
-            // Evita SetWindowPos redundante quando o cursor não mudou de pixel.
+            // Só agenda o reposicionamento. A imagem ampliada é atualizada
+            // primeiro; depois movemos a lente. Isso evita exibir um frame antigo
+            // durante o movimento rápido do mouse.
             if x != last_x || y != last_y {
-                unsafe {
-                    SetWindowPos(
-                        host_hwnd,
-                        HWND_TOPMOST,
-                        x,
-                        y,
-                        0,
-                        0,
-                        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING,
-                    )
-                };
                 new_lens_pos = Some((x, y));
             }
         }
@@ -60,6 +51,20 @@
 
         if source_changed {
             unsafe { MagSetWindowSource(mag_hwnd, source) };
+        }
+
+        if let Some((x, y)) = new_lens_pos {
+            unsafe {
+                SetWindowPos(
+                    host_hwnd,
+                    HWND_TOPMOST,
+                    x,
+                    y,
+                    0,
+                    0,
+                    SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING,
+                );
+            }
         }
 
         // Atualiza cache só depois das APIs do Windows terminarem.
