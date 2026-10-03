@@ -1,7 +1,7 @@
                         "+",
-                        BS_PUSHBUTTON,
+                        BS_OWNERDRAW,
                         284,
-                        244,
+                        260,
                         44,
                         30,
                         ID_AREA_PLUS,
@@ -16,7 +16,7 @@
                         "Sempre no topo",
                         BS_AUTOCHECKBOX,
                         22,
-                        286,
+                        302,
                         150,
                         26,
                         ID_ALWAYS_ON_TOP,
@@ -29,11 +29,11 @@
                         hwnd,
                         "BUTTON",
                         "Iniciar lupa",
-                        BS_PUSHBUTTON,
+                        BS_OWNERDRAW,
                         22,
-                        330,
-                        180,
-                        38,
+                        348,
+                        210,
+                        44,
                         ID_START_STOP,
                         instance,
                     )
@@ -43,11 +43,11 @@
                         hwnd,
                         "BUTTON",
                         "Sair",
-                        BS_PUSHBUTTON,
-                        218,
-                        330,
-                        95,
-                        38,
+                        BS_OWNERDRAW,
+                        248,
+                        348,
+                        108,
+                        44,
                         ID_EXIT,
                         instance,
                     );
@@ -57,10 +57,10 @@
                         "Atalhos: Ctrl+Alt+M liga/desliga • Ctrl+Alt++ / Ctrl+Alt+- ajustam o zoom",
                         SS_LEFT,
                         22,
-                        388,
+                        410,
                         420,
                         42,
-                        0,
+                        ID_SHORTCUTS_LABEL,
                         instance,
                     );
                 }
@@ -102,11 +102,21 @@
                 }
                 0
             }
+            WM_DRAWITEM => unsafe { draw_owner_control(l_param as *const DrawItemStruct) },
             WM_CTLCOLORSTATIC => {
                 let hdc = w_param as Hdc;
                 let bg_brush = state().lock().unwrap().bg_brush;
+                let control_id = unsafe { GetDlgCtrlID(l_param as Hwnd) } as usize;
+                let text_color = if control_id == ID_SUBTITLE_LABEL
+                    || control_id == ID_SHORTCUTS_LABEL
+                {
+                    COLOR_MUTED
+                } else {
+                    COLOR_TEXT
+                };
+
                 unsafe {
-                    SetTextColor(hdc, COLOR_TEXT);
+                    SetTextColor(hdc, text_color);
                     SetBkMode(hdc, TRANSPARENT);
                 }
                 bg_brush as Lresult
