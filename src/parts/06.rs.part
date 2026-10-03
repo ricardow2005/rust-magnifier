@@ -1,7 +1,22 @@
                     160,
                     900,
                     560,
-                    SWP_NOACTIVATE,
+                    SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING,
+                );
+            },
+            Mode::Docked => unsafe {
+                let virtual_x = GetSystemMetrics(SM_XVIRTUALSCREEN);
+                let virtual_y = GetSystemMetrics(SM_YVIRTUALSCREEN);
+                let virtual_w = GetSystemMetrics(SM_CXVIRTUALSCREEN).max(1);
+
+                SetWindowPos(
+                    host,
+                    if topmost { HWND_TOPMOST } else { HWND_NOTOPMOST },
+                    virtual_x,
+                    virtual_y,
+                    virtual_w,
+                    dock_height,
+                    SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING,
                 );
             },
         }
