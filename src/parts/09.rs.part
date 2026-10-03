@@ -17,6 +17,20 @@
                             update_magnifier();
                         }
                     }
+                    ID_MODE_DOCKED => {
+                        {
+                            let mut guard = state().lock().unwrap();
+                            guard.mode = Mode::Docked;
+                            guard.last_lens_x = i32::MIN;
+                            guard.last_lens_y = i32::MIN;
+                            guard.has_last_source = false;
+                        }
+                        unsafe {
+                            configure_host_for_mode();
+                            update_ui_labels();
+                            update_magnifier();
+                        }
+                    }
                     ID_SHAPE_CIRCLE => {
                         {
                             let mut guard = state().lock().unwrap();
