@@ -24,6 +24,7 @@ O workflow também disponibiliza o build mais recente como **Actions artifact** 
 - Lente padrão de **560 × 360**.
 - Controles **Área da lente − / +** para ajustar a lente entre 320 e 960 px de largura.
 - **Janela fixa**: mantém uma janela de ampliação enquanto a origem acompanha o mouse.
+- **Janela superior**: faixa ampliada presa ao topo da tela, com altura ajustável pelos controles de área.
 - Zoom de **1.0x a 8.0x**, em passos de 0.25x.
 - Opção de **lente circular**.
 - Janela da lente **não recebe cliques**, permitindo clicar normalmente no conteúdo por baixo.
@@ -86,11 +87,21 @@ O workflow `.github/workflows/release.yml`:
 
 Para publicar uma nova versão, altere o campo `version` em `Cargo.toml` e envie a alteração para `main`. O Actions cria a tag/release correspondente automaticamente.
 
+## Notas da v0.1.4
+
+- Adicionado o modo **Janela superior**, fixado no topo do desktop.
+- A altura da janela superior pode ser aumentada ou diminuída pelos botões de área, de 120 a 520 px.
+- Lente ao redor do mouse atualizada para aproximadamente 60 FPS.
+- Atualização do frame ampliado ocorre antes do movimento da lente para reduzir travadinhas.
+- Reposicionamento da lente otimizado para reduzir trabalho do DWM.
+
 ## Notas da v0.1.3
 
 - Corrigido possível deadlock ao ativar a lente: nenhuma chamada Win32/Magnification é feita mantendo o `Mutex` do estado bloqueado.
 - A lente é mostrada antes de configurar a superfície de magnificação.
-- Atualização em aproximadamente **30 FPS** para diminuir carga do DWM/GPU.
+- Atualização da lente em aproximadamente **60 FPS**.
+- A região ampliada é atualizada antes de reposicionar a lente, reduzindo quadros congelados durante movimentos rápidos do mouse.
+- O reposicionamento usa flags Win32 que evitam mensagens e redraws desnecessários.
 - Cache evita chamadas redundantes de `SetWindowPos` e `MagSetWindowSource`.
 - Interface em paleta dark.
 - Área padrão da lente aumentada para **560 × 360**.
