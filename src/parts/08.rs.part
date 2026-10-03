@@ -1,7 +1,7 @@
                         "+",
                         BS_PUSHBUTTON,
                         284,
-                        216,
+                        244,
                         44,
                         30,
                         ID_AREA_PLUS,
@@ -16,7 +16,7 @@
                         "Sempre no topo",
                         BS_AUTOCHECKBOX,
                         22,
-                        258,
+                        286,
                         150,
                         26,
                         ID_ALWAYS_ON_TOP,
@@ -31,7 +31,7 @@
                         "Iniciar lupa",
                         BS_PUSHBUTTON,
                         22,
-                        302,
+                        330,
                         180,
                         38,
                         ID_START_STOP,
@@ -45,7 +45,7 @@
                         "Sair",
                         BS_PUSHBUTTON,
                         218,
-                        302,
+                        330,
                         95,
                         38,
                         ID_EXIT,
@@ -57,7 +57,7 @@
                         "Atalhos: Ctrl+Alt+M liga/desliga • Ctrl+Alt++ / Ctrl+Alt+- ajustam o zoom",
                         SS_LEFT,
                         22,
-                        360,
+                        388,
                         420,
                         42,
                         0,
@@ -73,6 +73,7 @@
                     guard.start_button = start_button;
                     guard.lens_radio = lens_radio;
                     guard.fixed_radio = fixed_radio;
+                    guard.docked_radio = docked_radio;
                     guard.circle_checkbox = circle_checkbox;
                     guard.topmost_checkbox = topmost_checkbox;
                 }
