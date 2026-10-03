@@ -93,6 +93,7 @@
             flags: Uint,
         ) -> Bool;
         fn GetClientRect(hwnd: Hwnd, rect: *mut Rect) -> Bool;
+        fn GetWindowRect(hwnd: Hwnd, rect: *mut Rect) -> Bool;
         fn MoveWindow(hwnd: Hwnd, x: i32, y: i32, width: i32, height: i32, repaint: Bool) -> Bool;
         fn SetTimer(hwnd: Hwnd, id: UintPtr, elapse: Uint, timer_proc: *const c_void) -> UintPtr;
         fn KillTimer(hwnd: Hwnd, id: UintPtr) -> Bool;
@@ -134,6 +135,14 @@
     unsafe extern "system" {
         fn CreateEllipticRgn(left: i32, top: i32, right: i32, bottom: i32) -> Hrgn;
         fn CreateRectRgn(left: i32, top: i32, right: i32, bottom: i32) -> Hrgn;
+        fn CreateRoundRectRgn(
+            left: i32,
+            top: i32,
+            right: i32,
+            bottom: i32,
+            width_ellipse: i32,
+            height_ellipse: i32,
+        ) -> Hrgn;
         fn CreateSolidBrush(color: Dword) -> Hbrush;
         fn SetTextColor(hdc: Hdc, color: Dword) -> Dword;
         fn SetBkColor(hdc: Hdc, color: Dword) -> Dword;
