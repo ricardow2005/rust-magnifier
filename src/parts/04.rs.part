@@ -60,6 +60,437 @@
         }
     }
 
+    fn extract_json_string(body: &str, key: &str) -> Option<String> {
+        let needle = ["\"", key, "\""].concat();
+        let key_pos = body.find(&needle)? + needle.len();
+        let after_key = &body[key_pos..];
+        let colon_pos = after_key.find(':')?;
+        let mut chars = after_key[colon_pos + 1..].chars();
+
+        let first = loop {
+            let ch = chars.next()?;
+            if !ch.is_whitespace() {
+                break ch;
+            }
+        };
+
+        if first != '"' {
+            return None;
+        }
+
+        let mut value = String::new();
+        let mut escaped = false;
+
+        for ch in chars {
+            if escaped {
+                match ch {
+                    '"' => value.push('"'),
+                    '\\' => value.push('\\'),
+                    '/' => value.push('/'),
+                    'n' => value.push('\n'),
+                    'r' => value.push('\r'),
+                    't' => value.push('\t'),
+                    _ => value.push(ch),
+                }
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                return Some(value);
+            } else {
+                value.push(ch);
+            }
+        }
+
+        None
+    }
+
+    fn version_tuple(value: &str) -> (u64, u64, u64) {
+        let clean = value.trim().trim_start_matches('v');
+        let mut parts = clean.split('.');
+
+        let parse = |part: Option<&str>| -> u64 {
+            part.unwrap_or("0")
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit())
+                .collect::<String>()
+                .parse::<u64>()
+                .unwrap_or(0)
+        };
+
+        (parse(parts.next()), parse(parts.next()), parse(parts.next()))
+    }
+
+    fn is_newer_version(latest: &str, current: &str) -> bool {
+        version_tuple(latest) > version_tuple(current)
+    }
+
+    unsafe fn fetch_latest_release() -> Result<(String, String), String> {
+        let agent = wide(&format!(
+            "RustMagnifier/{} (+https://www.organizza.com.br)",
+            CURRENT_VERSION
+        ));
+        let server = wide("api.github.com");
+        let path = wide("/repos/ricardow2005/rust-magnifier/releases/latest");
+        let method = wide("GET");
+        let headers = wide(
+            "Accept: application/vnd.github+json\r\nX-GitHub-Api-Version: 2022-11-28\r\n",
+        );
+
+        let session = unsafe {
+            WinHttpOpen(
+                agent.as_ptr(),
+                WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                null(),
+                null(),
+                0,
+            )
+        };
+        if session == 0 {
+            return Err("Não foi possível iniciar a conexão com o GitHub.".into());
+        }
+
+        unsafe {
+            WinHttpSetTimeouts(session, 4_000, 5_000, 5_000, 7_000);
+        }
+
+        let connect = unsafe {
+            WinHttpConnect(
+                session,
+                server.as_ptr(),
+                INTERNET_DEFAULT_HTTPS_PORT,
+                0,
+            )
+        };
+        if connect == 0 {
+            unsafe { WinHttpCloseHandle(session) };
+            return Err("Não foi possível conectar ao GitHub.".into());
+        }
+
+        let request = unsafe {
+            WinHttpOpenRequest(
+                connect,
+                method.as_ptr(),
+                path.as_ptr(),
+                null(),
+                null(),
+                null(),
+                WINHTTP_FLAG_SECURE,
+            )
+        };
+        if request == 0 {
+            unsafe {
+                WinHttpCloseHandle(connect);
+                WinHttpCloseHandle(session);
+            }
+            return Err("Não foi possível criar a consulta de atualização.".into());
+        }
+
+        let request_result = (|| -> Result<Vec<u8>, String> {
+            if unsafe {
+                WinHttpSendRequest(
+                    request,
+                    headers.as_ptr(),
+                    (headers.len().saturating_sub(1)) as Dword,
+                    null_mut(),
+                    0,
+                    0,
+                    0,
+                )
+            } == FALSE
+            {
+                return Err("Falha ao enviar a consulta de atualização.".into());
+            }
+
+            if unsafe { WinHttpReceiveResponse(request, null_mut()) } == FALSE {
+                return Err("O GitHub não respondeu à consulta de atualização.".into());
+            }
+
+            let mut body = Vec::<u8>::new();
+
+            loop {
+                let mut available: Dword = 0;
+                if unsafe { WinHttpQueryDataAvailable(request, &mut available) } == FALSE {
+                    return Err("Falha ao ler a resposta de atualização.".into());
+                }
+
+                if available == 0 {
+                    break;
+                }
+
+                let mut chunk = vec![0u8; available as usize];
+                let mut bytes_read: Dword = 0;
+
+                if unsafe {
+                    WinHttpReadData(
+                        request,
+                        chunk.as_mut_ptr() as *mut c_void,
+                        available,
+                        &mut bytes_read,
+                    )
+                } == FALSE
+                {
+                    return Err("Falha ao baixar os dados da atualização.".into());
+                }
+
+                if bytes_read == 0 {
+                    break;
+                }
+
+                chunk.truncate(bytes_read as usize);
+                body.extend_from_slice(&chunk);
+            }
+
+            Ok(body)
+        })();
+
+        unsafe {
+            WinHttpCloseHandle(request);
+            WinHttpCloseHandle(connect);
+            WinHttpCloseHandle(session);
+        }
+
+        let body = request_result?;
+        let json = String::from_utf8(body)
+            .map_err(|_| "A resposta de atualização não está em UTF-8 válido.".to_string())?;
+
+        let tag = extract_json_string(&json, "tag_name")
+            .ok_or_else(|| "Não foi possível identificar a versão mais recente.".to_string())?;
+        let latest_version = tag.trim_start_matches('v').to_string();
+
+        let download_url = format!(
+            "https://github.com/ricardow2005/rust-magnifier/releases/download/{tag}/rust-magnifier.exe"
+        );
+
+        Ok((latest_version, download_url))
+    }
+
+    unsafe fn open_download_url(hwnd: Hwnd, url: &str) {
+        let operation = wide("open");
+        let target = wide(url);
+
+        unsafe {
+            ShellExecuteW(
+                hwnd,
+                operation.as_ptr(),
+                target.as_ptr(),
+                null(),
+                null(),
+                SW_SHOWNORMAL,
+            );
+        }
+    }
+
+    unsafe fn set_update_controls(status: &str, button: &str) {
+        let (status_label, update_button) = {
+            let guard = state().lock().unwrap();
+            (guard.update_status_label, guard.update_button)
+        };
+
+        if status_label != 0 {
+            let text = wide(status);
+            unsafe {
+                SetWindowTextW(status_label, text.as_ptr());
+                InvalidateRect(status_label, null(), TRUE);
+            }
+        }
+
+        if update_button != 0 {
+            let text = wide(button);
+            unsafe {
+                SetWindowTextW(update_button, text.as_ptr());
+                InvalidateRect(update_button, null(), TRUE);
+            }
+        }
+    }
+
+    unsafe fn start_update_check(hwnd: Hwnd, show_popup: bool) {
+        {
+            let mut guard = state().lock().unwrap();
+            if guard.update_check_running {
+                return;
+            }
+
+            guard.update_check_running = true;
+        }
+
+        unsafe {
+            set_update_controls(
+                &format!("Versão instalada: v{CURRENT_VERSION} • verificando..."),
+                "Verificando...",
+            );
+        }
+
+        std::thread::spawn(move || {
+            let check = unsafe { fetch_latest_release() };
+
+            let result = match check {
+                Ok((latest_version, download_url)) => UpdateCheckResult {
+                    latest_version: Some(latest_version),
+                    download_url: Some(download_url),
+                    error: None,
+                    show_popup,
+                },
+                Err(error) => UpdateCheckResult {
+                    latest_version: None,
+                    download_url: None,
+                    error: Some(error),
+                    show_popup,
+                },
+            };
+
+            let raw = Box::into_raw(Box::new(result));
+
+            if unsafe {
+                PostMessageW(
+                    hwnd,
+                    WM_UPDATE_CHECK_RESULT,
+                    0,
+                    raw as Lparam,
+                )
+            } == FALSE
+            {
+                unsafe {
+                    drop(Box::from_raw(raw));
+                }
+            }
+        });
+    }
+
+    unsafe fn update_button_clicked(hwnd: Hwnd) {
+        let (checking, available, download_url) = {
+            let guard = state().lock().unwrap();
+            (
+                guard.update_check_running,
+                guard.update_available,
+                guard.latest_download_url.clone(),
+            )
+        };
+
+        if checking {
+            return;
+        }
+
+        if available {
+            if let Some(url) = download_url {
+                unsafe { open_download_url(hwnd, &url) };
+            }
+        } else {
+            unsafe { start_update_check(hwnd, true) };
+        }
+    }
+
+    unsafe fn handle_update_result(hwnd: Hwnd, l_param: Lparam) {
+        if l_param == 0 {
+            return;
+        }
+
+        let result = unsafe { Box::from_raw(l_param as *mut UpdateCheckResult) };
+
+        if let Some(error) = result.error.as_ref() {
+            {
+                let mut guard = state().lock().unwrap();
+                guard.update_check_running = false;
+                guard.update_available = false;
+                guard.latest_version = None;
+                guard.latest_download_url = None;
+            }
+
+            unsafe {
+                set_update_controls(
+                    &format!("Versão instalada: v{CURRENT_VERSION} • verificação indisponível"),
+                    "Tentar novamente",
+                );
+            }
+
+            if result.show_popup {
+                let message = wide(&format!(
+                    "Não foi possível verificar se há uma nova versão agora.\n\n{error}"
+                ));
+                let title = wide("Atualizações • Rust Magnifier");
+
+                unsafe {
+                    MessageBoxW(
+                        hwnd,
+                        message.as_ptr(),
+                        title.as_ptr(),
+                        MB_OK | MB_ICONWARNING,
+                    );
+                }
+            }
+
+            return;
+        }
+
+        let latest = result
+            .latest_version
+            .clone()
+            .unwrap_or_else(|| CURRENT_VERSION.to_string());
+        let available = is_newer_version(&latest, CURRENT_VERSION);
+
+        {
+            let mut guard = state().lock().unwrap();
+            guard.update_check_running = false;
+            guard.update_available = available;
+            guard.latest_version = Some(latest.clone());
+            guard.latest_download_url = result.download_url.clone();
+        }
+
+        if available {
+            unsafe {
+                set_update_controls(
+                    &format!("Nova versão disponível: v{latest}"),
+                    &format!("Baixar v{latest}"),
+                );
+            }
+
+            if result.show_popup {
+                let message = wide(&format!(
+                    "Há uma nova versão do Rust Magnifier disponível.\n\nVersão instalada: v{CURRENT_VERSION}\nNova versão: v{latest}\n\nDeseja baixar agora?"
+                ));
+                let title = wide("Nova atualização disponível");
+
+                let answer = unsafe {
+                    MessageBoxW(
+                        hwnd,
+                        message.as_ptr(),
+                        title.as_ptr(),
+                        MB_YESNO | MB_ICONINFORMATION,
+                    )
+                };
+
+                if answer == IDYES {
+                    if let Some(url) = result.download_url.as_ref() {
+                        unsafe { open_download_url(hwnd, url) };
+                    }
+                }
+            }
+        } else {
+            unsafe {
+                set_update_controls(
+                    &format!("Versão instalada: v{CURRENT_VERSION} • atualizado"),
+                    "Verificar",
+                );
+            }
+
+            if result.show_popup {
+                let message = wide(&format!(
+                    "Verificação concluída.\n\nVocê já está usando a versão mais recente do Rust Magnifier (v{CURRENT_VERSION})."
+                ));
+                let title = wide("Rust Magnifier atualizado");
+
+                unsafe {
+                    MessageBoxW(
+                        hwnd,
+                        message.as_ptr(),
+                        title.as_ptr(),
+                        MB_OK | MB_ICONINFORMATION,
+                    );
+                }
+            }
+        }
+    }
+
     unsafe fn apply_zoom_transform() {
         let (mag_hwnd, zoom) = {
             let guard = state().lock().unwrap();

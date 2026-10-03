@@ -4,6 +4,15 @@
         Docked,
     }
 
+    const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+    struct UpdateCheckResult {
+        latest_version: Option<String>,
+        download_url: Option<String>,
+        error: Option<String>,
+        show_popup: bool,
+    }
+
     struct AppState {
         main_hwnd: Hwnd,
         host_hwnd: Hwnd,
@@ -17,6 +26,12 @@
         circle_checkbox: Hwnd,
         topmost_checkbox: Hwnd,
         status_label: Hwnd,
+        update_status_label: Hwnd,
+        update_button: Hwnd,
+        update_check_running: bool,
+        update_available: bool,
+        latest_version: Option<String>,
+        latest_download_url: Option<String>,
         zoom: f32,
         running: bool,
         mode: Mode,
@@ -51,6 +66,12 @@
                 circle_checkbox: 0,
                 topmost_checkbox: 0,
                 status_label: 0,
+                update_status_label: 0,
+                update_button: 0,
+                update_check_running: false,
+                update_available: false,
+                latest_version: None,
+                latest_download_url: None,
                 zoom: 2.0,
                 running: false,
                 mode: Mode::Lens,
@@ -143,7 +164,7 @@
         let pressed = (draw.item_state & ODS_SELECTED) != 0;
         let focused = (draw.item_state & ODS_FOCUS) != 0;
         let disabled = (draw.item_state & ODS_DISABLED) != 0;
-        let (ui_font, button_font, mode, circle, always_on_top, running) = {
+        let (ui_font, button_font, mode, circle, always_on_top, running, update_available) = {
             let guard = state().lock().unwrap();
             (
                 guard.ui_font,
@@ -152,10 +173,11 @@
                 guard.circle,
                 guard.always_on_top,
                 guard.running,
+                guard.update_available,
             )
         };
 
-        if id == ID_MODE_PANEL || id == ID_SETTINGS_PANEL {
+        if id == ID_MODE_PANEL || id == ID_SETTINGS_PANEL || id == ID_UPDATE_PANEL {
             let brush = unsafe { CreateSolidBrush(COLOR_PANEL) };
             let pen = unsafe { CreatePen(PS_SOLID, 1, COLOR_BORDER) };
             let old_brush = unsafe { SelectObject(draw.hdc, brush as Hgdiobj) };
@@ -179,8 +201,10 @@
 
             let label = wide(if id == ID_MODE_PANEL {
                 "Modo de exibição"
-            } else {
+            } else if id == ID_SETTINGS_PANEL {
                 "Ampliação"
+            } else {
+                "Atualizações"
             });
             let mut label_rect = Rect {
                 left: rect.left + 16,
@@ -244,6 +268,10 @@
                     COLOR_BUTTON
                 },
                 if selected || focused { COLOR_BORDER_FOCUS } else { COLOR_BORDER },
+            ),
+            ID_UPDATE_BUTTON if update_available => (
+                if pressed { COLOR_PRIMARY_DOWN } else { COLOR_PRIMARY },
+                if focused { COLOR_BORDER_FOCUS } else { COLOR_PRIMARY },
             ),
             ID_MINIMIZE => (
                 if pressed { COLOR_BUTTON_PRESSED } else { COLOR_BG },

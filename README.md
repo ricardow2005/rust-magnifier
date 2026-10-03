@@ -87,6 +87,18 @@ O workflow `.github/workflows/release.yml`:
 
 Para publicar uma nova versão, altere o campo `version` em `Cargo.toml` e envie a alteração para `main`. O Actions cria a tag/release correspondente automaticamente.
 
+## Notas da v0.1.8
+
+- Verificação automática de atualização ao abrir o aplicativo.
+- Consulta assíncrona da release mais recente no GitHub, sem bloquear a interface.
+- Popup em toda inicialização informando se o app está atualizado, se há nova versão ou se a verificação falhou.
+- Quando existe atualização, o popup oferece **Baixar agora** e abre diretamente o novo `rust-magnifier.exe`.
+- Novo card **Atualizações** na interface, mostrando a versão instalada e o estado da verificação.
+- Botão **Verificar** permite consultar novamente manualmente.
+- Quando há versão nova, o botão muda para **Baixar vX.Y.Z**.
+- A verificação usa WinHTTP nativo do Windows e mantém o app sem dependências externas.
+- User-Agent da consulta identifica o Rust Magnifier e referencia `https://www.organizza.com.br`.
+
 ## Notas da v0.1.7
 
 - Layout reorganizado em uma grade mais larga e consistente.

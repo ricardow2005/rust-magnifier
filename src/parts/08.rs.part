@@ -24,6 +24,51 @@
                     )
                 };
 
+                unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "",
+                        BS_OWNERDRAW | WS_DISABLED,
+                        20,
+                        430,
+                        550,
+                        88,
+                        ID_UPDATE_PANEL,
+                        instance,
+                    );
+                }
+
+                let update_status_label = unsafe {
+                    create_control(
+                        hwnd,
+                        "STATIC",
+                        &format!("Versão instalada: v{CURRENT_VERSION}"),
+                        SS_LEFT,
+                        38,
+                        466,
+                        326,
+                        24,
+                        ID_UPDATE_STATUS,
+                        instance,
+                    )
+                };
+
+                let update_button = unsafe {
+                    create_control(
+                        hwnd,
+                        "BUTTON",
+                        "Verificar",
+                        BS_OWNERDRAW,
+                        390,
+                        458,
+                        158,
+                        34,
+                        ID_UPDATE_BUTTON,
+                        instance,
+                    )
+                };
+
                 let start_button = unsafe {
                     create_control(
                         hwnd,
@@ -31,7 +76,7 @@
                         "▶  Iniciar lupa",
                         BS_OWNERDRAW,
                         20,
-                        434,
+                        536,
                         550,
                         48,
                         ID_START_STOP,
@@ -45,7 +90,7 @@
                         "Atalhos: Ctrl+Alt+M liga/desliga  •  Ctrl+Alt++ / Ctrl+Alt+- ajustam o zoom",
                         SS_LEFT,
                         24,
-                        498,
+                        600,
                         540,
                         46,
                         ID_SHORTCUTS_LABEL,
@@ -65,6 +110,8 @@
                     guard.circle_checkbox = circle_checkbox;
                     guard.topmost_checkbox = topmost_checkbox;
                     guard.status_label = status_label;
+                    guard.update_status_label = update_status_label;
+                    guard.update_button = update_button;
                 }
 
                 unsafe {
@@ -88,10 +135,15 @@
                         VK_M,
                     );
                     SetTimer(hwnd, TIMER_ID, TIMER_INTERVAL_MS, null());
+                    start_update_check(hwnd, true);
                 }
                 0
             }
             WM_DRAWITEM => unsafe { draw_owner_control(l_param as *const DrawItemStruct) },
+            WM_UPDATE_CHECK_RESULT => {
+                unsafe { handle_update_result(hwnd, l_param) };
+                0
+            }
             WM_CTLCOLORSTATIC => {
                 let hdc = w_param as Hdc;
                 let bg_brush = state().lock().unwrap().bg_brush;
@@ -99,6 +151,12 @@
                 let text_color = if control_id == ID_STATUS_LABEL {
                     if state().lock().unwrap().running {
                         rgb(74, 222, 128)
+                    } else {
+                        COLOR_MUTED
+                    }
+                } else if control_id == ID_UPDATE_STATUS {
+                    if state().lock().unwrap().update_available {
+                        COLOR_BORDER_FOCUS
                     } else {
                         COLOR_MUTED
                     }
@@ -138,6 +196,7 @@
             WM_COMMAND => {
                 match loword(w_param) {
                     ID_START_STOP => unsafe { toggle_running() },
+                    ID_UPDATE_BUTTON => unsafe { update_button_clicked(hwnd) },
                     ID_MINIMIZE => unsafe {
                         ShowWindow(hwnd, SW_MINIMIZE);
                     },
