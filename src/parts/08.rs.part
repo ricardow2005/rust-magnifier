@@ -1,6 +1,6 @@
                         "+",
                         BS_OWNERDRAW,
-                        282,
+                        314,
                         332,
                         46,
                         34,
@@ -15,9 +15,9 @@
                         "BUTTON",
                         "Sempre no topo",
                         BS_OWNERDRAW,
-                        306,
+                        380,
                         332,
-                        152,
+                        168,
                         34,
                         ID_ALWAYS_ON_TOP,
                         instance,
@@ -32,7 +32,7 @@
                         BS_OWNERDRAW,
                         20,
                         434,
-                        462,
+                        550,
                         48,
                         ID_START_STOP,
                         instance,
@@ -46,8 +46,8 @@
                         SS_LEFT,
                         24,
                         498,
-                        452,
-                        42,
+                        540,
+                        46,
                         ID_SHORTCUTS_LABEL,
                         instance,
                     );
@@ -110,11 +110,21 @@
                     COLOR_TEXT
                 };
 
+                let brush = if control_id == ID_TITLE_LABEL
+                    || control_id == ID_SUBTITLE_LABEL
+                    || control_id == ID_STATUS_LABEL
+                    || control_id == ID_SHORTCUTS_LABEL
+                {
+                    bg_brush
+                } else {
+                    state().lock().unwrap().panel_brush
+                };
+
                 unsafe {
                     SetTextColor(hdc, text_color);
                     SetBkMode(hdc, TRANSPARENT);
                 }
-                bg_brush as Lresult
+                brush as Lresult
             }
             WM_CTLCOLORBTN => {
                 let hdc = w_param as Hdc;
