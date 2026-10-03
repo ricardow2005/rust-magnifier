@@ -1,0 +1,86 @@
+name: Windows Build & Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.99.0
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal
+          rustup target add x86_64-pc-windows-msvc --toolchain 1.99.0
+          rustup default 1.99.0
+
+      - name: Show toolchain versions
+        shell: pwsh
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Build release executable
+        shell: pwsh
+        run: cargo build --release --target x86_64-pc-windows-msvc
+
+      - name: Read package version
+        id: version
+        shell: pwsh
+        run: |
+          $line = Select-String -Path Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
+          if (-not $line) { throw "Version not found in Cargo.toml" }
+          $version = $line.Matches[0].Groups[1].Value
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Prepare distributable files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item "build\x86_64-pc-windows-msvc\release\rust-magnifier.exe" "dist\rust-magnifier.exe"
+          Compress-Archive -Path "dist\rust-magnifier.exe", "README.md", "LICENSE" -DestinationPath "dist\rust-magnifier-windows-x64.zip" -Force
+
+      - name: Upload Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-magnifier-windows-x64
+          path: |
+            dist/rust-magnifier.exe
+            dist/rust-magnifier-windows-x64.zip
+          if-no-files-found: error
+
+      - name: Create or update GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release view $env:RELEASE_TAG --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG `
+              "dist\rust-magnifier.exe" `
+              "dist\rust-magnifier-windows-x64.zip" `
+              --repo "${{ github.repository }}" `
+              --clobber
+          }
+          else {
+            gh release create $env:RELEASE_TAG `
+              "dist\rust-magnifier.exe" `
+              "dist\rust-magnifier-windows-x64.zip" `
+              --repo "${{ github.repository }}" `
+              --target "${{ github.sha }}" `
+              --title "Rust Magnifier $env:RELEASE_TAG" `
+              --generate-notes
+          }
