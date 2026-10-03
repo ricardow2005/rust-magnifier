@@ -81,34 +81,10 @@ O workflow `.github/workflows/release.yml`:
 2. instala o Rust 1.99.0;
 3. compila para `x86_64-pc-windows-msvc` em modo release;
 4. publica o `.exe` e o `.zip` como artifact do Actions;
-5. em tags no formato `v*`, cria ou atualiza automaticamente um GitHub Release e anexa os binários.
+5. lê a versão diretamente de `Cargo.toml`;
+6. cria ou atualiza automaticamente o GitHub Release `v<versão>` e anexa os binários.
 
-Para publicar uma nova versão, atualize a versão em `Cargo.toml` e crie uma tag, por exemplo:
-
-```powershell
-git tag v0.1.4
-git push origin v0.1.4
-```
-
-## Estrutura
-
-```text
-rust-magnifier/
-├─ .cargo/
-│  └─ config.toml
-├─ .github/
-│  └─ workflows/
-│     └─ release.yml
-├─ src/
-│  └─ main.rs
-├─ .gitignore
-├─ Cargo.toml
-├─ LICENSE
-├─ README.md
-├─ build_release.bat
-├─ run_dev.bat
-└─ rust-toolchain.toml
-```
+Para publicar uma nova versão, altere o campo `version` em `Cargo.toml` e envie a alteração para `main`. O Actions cria a tag/release correspondente automaticamente.
 
 ## Notas da v0.1.3
 
