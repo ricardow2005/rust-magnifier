@@ -101,43 +101,58 @@
                     }
                 }
 
-                unsafe {
+                let title_label = unsafe {
                     create_control(
                         hwnd,
                         "STATIC",
                         "Rust Magnifier",
                         SS_LEFT,
-                        22,
+                        24,
                         18,
-                        300,
-                        28,
-                        0,
+                        320,
+                        32,
+                        ID_TITLE_LABEL,
                         instance,
-                    );
+                    )
+                };
+
+                unsafe {
                     create_control(
                         hwnd,
                         "STATIC",
                         "Lupa nativa para Windows • Rust 1.99.0",
                         SS_LEFT,
+                        24,
+                        52,
+                        390,
                         22,
-                        48,
-                        360,
-                        22,
-                        0,
+                        ID_SUBTITLE_LABEL,
                         instance,
                     );
                     create_control(
                         hwnd,
                         "BUTTON",
-                        "Modo",
-                        BS_GROUPBOX,
+                        "",
+                        BS_OWNERDRAW | WS_DISABLED,
                         18,
-                        82,
+                        88,
                         420,
-                        110,
-                        0,
+                        118,
+                        ID_MODE_PANEL,
                         instance,
                     );
+                }
+
+                let title_font = state().lock().unwrap().title_font;
+                if title_font != 0 {
+                    unsafe {
+                        SendMessageW(
+                            title_label,
+                            WM_SETFONT,
+                            title_font as Wparam,
+                            TRUE as Lparam,
+                        )
+                    };
                 }
 
                 let lens_radio = unsafe {
@@ -146,5 +161,5 @@
                         "BUTTON",
                         "Lente ao redor do mouse",
                         BS_AUTORADIOBUTTON,
-                        35,
-                        106,
+                        38,
+                        120,
