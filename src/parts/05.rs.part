@@ -30,7 +30,7 @@
                         y,
                         0,
                         0,
-                        SWP_NOSIZE | SWP_NOACTIVATE,
+                        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING,
                     )
                 };
                 new_lens_pos = Some((x, y));
@@ -92,11 +92,20 @@
     unsafe fn set_lens_size(delta_width: i32) {
         {
             let mut guard = state().lock().unwrap();
-            let new_width = (guard.lens_width + delta_width).clamp(320, 960);
-            // Mantém aproximadamente a proporção 14:9 da lente padrão.
-            let new_height = ((new_width as f32) * (9.0 / 14.0)).round() as i32;
-            guard.lens_width = new_width;
-            guard.lens_height = new_height.clamp(220, 620);
+
+            match guard.mode {
+                Mode::Docked => {
+                    let delta_height = if delta_width < 0 { -40 } else { 40 };
+                    guard.dock_height = (guard.dock_height + delta_height).clamp(120, 520);
+                }
+                Mode::Lens | Mode::Fixed => {
+                    let new_width = (guard.lens_width + delta_width).clamp(320, 960);
+                    let new_height = ((new_width as f32) * (9.0 / 14.0)).round() as i32;
+                    guard.lens_width = new_width;
+                    guard.lens_height = new_height.clamp(220, 620);
+                }
+            }
+
             guard.last_lens_x = i32::MIN;
             guard.last_lens_y = i32::MIN;
             guard.has_last_source = false;
@@ -110,13 +119,14 @@
     }
 
     unsafe fn configure_host_for_mode() {
-        let (host, mode, lens_w, lens_h, topmost) = {
+        let (host, mode, lens_w, lens_h, dock_height, topmost) = {
             let guard = state().lock().unwrap();
             (
                 guard.host_hwnd,
                 guard.mode,
                 guard.lens_width,
                 guard.lens_height,
+                guard.dock_height,
                 guard.always_on_top,
             )
         };
@@ -126,7 +136,15 @@
 
         match mode {
             Mode::Lens => unsafe {
-                SetWindowPos(host, HWND_TOPMOST, 0, 0, lens_w, lens_h, SWP_NOACTIVATE);
+                SetWindowPos(
+                    host,
+                    HWND_TOPMOST,
+                    0,
+                    0,
+                    lens_w,
+                    lens_h,
+                    SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING,
+                );
             },
             Mode::Fixed => unsafe {
                 SetWindowPos(
