@@ -70,21 +70,32 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          GH_REPO: ${{ github.repository }}
+          GH_SHA: ${{ github.sha }}
         run: |
-          gh release view $env:RELEASE_TAG --repo "${{ github.repository }}" *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $env:RELEASE_TAG `
-              "dist\rust-magnifier.exe" `
-              "dist\rust-magnifier-windows-x64.zip" `
-              --repo "${{ github.repository }}" `
-              --clobber
+          # Consulta a release pela API. Se ela não existir, tenta criar.
+          # Se outra execução criar no intervalo, detectamos e continuamos.
+          gh api "repos/$env:GH_REPO/releases/tags/$env:RELEASE_TAG" *> $null
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Release $env:RELEASE_TAG ainda não existe. Criando..."
+            gh release create $env:RELEASE_TAG --repo $env:GH_REPO --target $env:GH_SHA --title "Rust Magnifier $env:RELEASE_TAG" --generate-notes
+
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "A criação retornou erro. Verificando se outra execução criou a release..."
+              gh api "repos/$env:GH_REPO/releases/tags/$env:RELEASE_TAG" *> $null
+
+              if ($LASTEXITCODE -ne 0) {
+                throw "Não foi possível criar nem localizar a release $env:RELEASE_TAG."
+              }
+            }
           }
           else {
-            gh release create $env:RELEASE_TAG `
-              "dist\rust-magnifier.exe" `
-              "dist\rust-magnifier-windows-x64.zip" `
-              --repo "${{ github.repository }}" `
-              --target "${{ github.sha }}" `
-              --title "Rust Magnifier $env:RELEASE_TAG" `
-              --generate-notes
+            Write-Host "Release $env:RELEASE_TAG já existe. Atualizando assets..."
+          }
+
+          gh release upload $env:RELEASE_TAG "dist\rust-magnifier.exe" "dist\rust-magnifier-windows-x64.zip" --repo $env:GH_REPO --clobber
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao enviar os arquivos para a release $env:RELEASE_TAG."
           }
